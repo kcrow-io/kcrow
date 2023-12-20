@@ -1,0 +1,87 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: (unknown)
+  name: cpus.kcrow.io
+spec:
+  group: kcrow.io
+  names:
+    kind: Cpu
+    listKind: CpuList
+    plural: cpus
+    singular: cpu
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Cpu is the Schema for the Cpus API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CpuSpec defines the desired state of resource.
+            properties:
+              cpu:
+                description: cpuset configure, support *
+                properties:
+                  cpus:
+                    description: CPUs to use within the cpuset. Default is to use
+                      any CPU available.
+                    type: string
+                  idle:
+                    description: 'cgroups are configured with minimum weight, 0: default
+                      behavior, 1: SCHED_IDLE.'
+                    format: int64
+                    type: integer
+                  mems:
+                    description: List of memory nodes in the cpuset. Default is to
+                      use any available memory node.
+                    type: string
+                type: object
+              namespaceName:
+                items:
+                  type: string
+                type: array
+              runtimeClassName:
+                items:
+                  type: string
+                type: array
+            type: object
+          status:
+            description: CpusetStatus defines the observed state of resource.
+            properties:
+              pods:
+                additionalProperties:
+                  properties:
+                    cpus:
+                      description: CPUs to use within the cpuset. Default is to use
+                        any CPU available.
+                      type: string
+                    idle:
+                      description: 'cgroups are configured with minimum weight, 0:
+                        default behavior, 1: SCHED_IDLE.'
+                      format: int64
+                      type: integer
+                    mems:
+                      description: List of memory nodes in the cpuset. Default is
+                        to use any available memory node.
+                      type: string
+                  type: object
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true

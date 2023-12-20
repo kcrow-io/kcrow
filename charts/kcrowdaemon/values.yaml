@@ -1,0 +1,204 @@
+# Default values for kcrowpam.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+## @section Global parameters
+##
+global:
+  ## @param global.imageRegistryOverride Global image registry for all images, which is used for offline environment
+  imageRegistryOverride: ""
+
+  ## @param global.nameOverride instance name
+  ## default kcrowpam
+  nameOverride: ""
+
+  ## @param global.clusterDnsDomain cluster dns domain
+  clusterDnsDomain: "cluster.local"
+
+  ## @param global.commonAnnotations Annotations to add to all deployed objects
+  commonAnnotations: {}
+
+  ## @param global.commonLabels Labels to add to all deployed objects
+  commonLabels: {}
+  #  label1: v1
+  #  labele: v2
+
+  ## @param global.configName the configmap name
+  configName: "kcrowpam-conf"
+
+## @section controller parameters
+##
+controller:
+  ## @param controller.name the controller name
+  name: "kcrow-controller"
+
+  ## @param controller.replicas the replicas number of controller pod
+  replicas: 1
+
+  ## @param controller.binName the binName name of controller
+  binName: "/usr/bin/kcrow-controller"
+
+  ## @param controller.hostnetwork enable hostnetwork mode of controller pod. 
+  ## Notice, if no CNI available before kcrow installation, must enable this
+  hostnetwork: true
+
+  image:
+    ## @param controller.image.registry the image registry of controller
+    registry: ghcr.io
+
+    ## @param controller.image.repository the image repository of controller
+    repository: yylt/kcrow-controller
+
+    ## @param controller.image.pullPolicy the image pullPolicy of controller
+    pullPolicy: IfNotPresent
+
+    ## @param controller.image.digest the image digest of controller, which takes preference over tag
+    digest: ""
+
+    ## @param controller.image.tag the image tag of controller, overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+    ## @param controller.image.imagePullSecrets the image imagePullSecrets of controller
+    imagePullSecrets: []
+    # - name: "image-pull-secret"
+
+  ## @param controller.infraType use which kind infra. 
+  ## now support openstack, ali
+  infraType: openstack
+
+  ## @param controller.infraTimeout which read timeout for infra connection. 
+  infraTimeout: "60"
+
+  ## @param controller.infraMutex which create is mutex with update operation. 
+  infraMutex: "true"
+
+  ## @skip controller.nodeSelector.kubernetes.io/os
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  debug:
+    ## @param controller.debug.logLevel the log level of Controller [debug, info, warn, error, fatal, panic]
+    logLevel: "info"
+
+    ## @param controller.debug.gopsPort the gops port of Controller
+    gopsPort: 5724
+
+  serviceAccount:
+    ## @param controller.serviceAccount.create create the service account for the controller
+    create: true
+    ## @param controller.serviceAccount.annotations the annotations of controller service account
+    annotations: {}
+
+  ## @skip controller.tolerations
+  tolerations:
+    - operator: Exists
+
+  ## @param controller.priorityClassName the priority Class Name for controller
+  priorityClassName: "system-node-critical"
+
+  ## @param controller.affinity the affinity of controller
+  affinity: {}
+
+  ## @param controller.extraArgs the additional arguments of controller container
+  extraArgs: []
+
+  ## @param controller.extraEnv the additional environment variables of controller container
+  extraEnv: []
+
+  ## @param controller.extraVolumes the additional volumes of controller container
+  extraVolumes: []
+    # - name: test-val
+    #   mountPath: /host/tmp
+
+  ## @param controller.extraVolumeMounts the additional hostPath mounts of controller container
+  extraVolumeMounts: []
+    # - name: test-val
+    #   mountPath: /tmp
+
+  ## @param controller.podAnnotations the additional annotations of controller pod
+  podAnnotations: {}
+    # test: 100
+
+  ## @param controller.podLabels the additional label of controller pod
+  podLabels: {}
+
+  ## @param controller.securityContext the security Context of controller pod
+  securityContext: {}
+  # runAsUser: 0
+
+  resources:
+    limits:
+      ## @param controller.resources.limits.cpu the cpu limit of controller pod
+      cpu: 500m
+      ## @param controller.resources.limits.memory the memory limit of controller pod
+      memory: 1024Mi
+    requests:
+      ## @param controller.resources.requests.cpu the cpu requests of controller pod
+      cpu: 100m
+      ## @param controller.resources.requests.memory the memory requests of controller pod
+      memory: 64Mi
+
+  ## @param controller.httpPort the http Port for controller, for health checking and http service
+  httpPort: 5720
+
+  healthChecking:
+    startupProbe:
+      ## @param controller.healthChecking.startupProbe.failureThreshold the failure threshold of startup probe for controller health checking
+      failureThreshold: 30
+
+      ## @param controller.healthChecking.startupProbe.periodSeconds the period seconds of startup probe for controller health checking
+      periodSeconds: 2
+
+    livenessProbe:
+      ## @param controller.healthChecking.livenessProbe.failureThreshold the failure threshold of startup probe for controller health checking
+      failureThreshold: 6
+
+      ## @param controller.healthChecking.livenessProbe.periodSeconds the period seconds of startup probe for controller health checking
+      periodSeconds: 10
+
+    readinessProbe:
+      ## @param controller.healthChecking.readinessProbe.failureThreshold the failure threshold of startup probe for controller health checking
+      failureThreshold: 3
+
+      ## @param controller.healthChecking.readinessProbe.periodSeconds the period seconds of startup probe for controller health checking
+      periodSeconds: 10
+
+  ## @param controller.webhookPort the http port for controller webhook
+  webhookPort: 5722
+
+  prometheus:
+    ## @param controller.prometheus.enabled enable Controller to collect metrics
+    enabled: false
+
+    ## @param controller.prometheus.enabledDebugMetric enable Controller to collect debug level metrics
+    enabledDebugMetric: false
+
+    ## @param controller.prometheus.port the metrics port of Controller
+    port: 5721
+
+
+
+## @section ipam parameters
+##
+ipam:
+  ## @param Openstack.preAllocated max avaliable ip.
+  preAllocated: 20
+
+  ## @param Openstack.minAvaliabled min avaliable ip.
+  minAvaliabled: 3
+
+  ## @param Openstack.workerNumber worker number.
+  workerNumber: 20
+
+
+## @section Openstack parameters
+##
+openstack:
+  ## @param Openstack.authUrl Global for which is used openstack keystone.
+  authUrl: ""
+
+  applicationCredentialId: ""
+  applicationCredentialSecret: ""
+  defaultSubnatId: ""
+  defaultSubnatProjectId: ""
+  defaultRegion: ""

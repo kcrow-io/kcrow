@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.configName }}
+  namespace: {{ .Release.Namespace }}
+data:
+  conf.yml: |
+    preAllocated: {{ .Values.ipam.preAllocated }}
+    minAvaliabled: {{ .Values.ipam.minAvaliabled }}
+    workerNumber: {{ .Values.ipam.workerNumber }}

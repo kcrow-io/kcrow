@@ -1,0 +1,26 @@
+---
+header:
+  - license:
+      spdx-id: Apache-2.0
+      copyright-owner: kcrow
+      pattern: |
+        Copyright|Apache-2.0
+      content: |
+        Copyright 2023 Authors of kcrow
+        SPDX-License-Identifier: Apache-2.0
+    paths:
+      - '**/*.go'
+      - '**/*.sh'
+    paths-ignore:
+      - 'vendor'
+    comment: on-failure
+  - license:
+      content: |
+        Copyright 2023 The kcrow Authors
+        SPDX-License-Identifier: Apache-2.0
+    paths:
+      - '**/*.go'
+      - '**/*.sh'
+    paths-ignore:
+      - 'vendor'
+    comment: on-failure
