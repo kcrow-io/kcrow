@@ -6,9 +6,18 @@ import (
 
 type Handler interface {
 	Name() string
+}
+
+type Createhandler interface {
 	CreateContainer(*api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error)
-	UpdateContainer(*api.PodSandbox, *api.Container, *api.LinuxResources) ([]*api.ContainerUpdate, error)
-	StopContainer(*api.PodSandbox, *api.Container) ([]*api.ContainerUpdate, error)
+}
+
+type Updatehandler interface {
+	UpdateContainer(*api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error)
+}
+
+type Stophandler interface {
+	StopContainer(*api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error)
 }
 
 func RegistHandler(h Handler) {
