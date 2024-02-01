@@ -2,11 +2,16 @@ package resource
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+)
+
+var (
+	nodeName = os.Getenv("NODE_NAME")
 )
 
 type NodeRsc struct {
@@ -45,8 +50,15 @@ func (no *NodeRsc) probe() error {
 	}
 	evHandler := toolscache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
-			_, ok := obj.(*corev1.Node)
-			return ok
+			v, ok := obj.(*corev1.Node)
+			if !ok {
+				return false
+			}
+			if v.Name == nodeName {
+				return true
+			}
+
+			return false
 		},
 		Handler: no,
 	}

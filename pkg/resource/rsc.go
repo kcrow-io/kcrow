@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	RlimtPrefix = "rlimit.kcrow.io/"
+	RlimtSuffix = "rlimit.kcrow.io"
 
-	CgroupPrefix = "cgroup.kcrow.io/"
+	CgroupSuffix = "cgroup.kcrow.io"
 )
 
 // ref: https://github.com/opencontainers/runtime-spec/blob/main/config.md#posix-process
@@ -110,24 +110,35 @@ func (r *Rlimit) Resource() *api.POSIXRlimit {
 	return ret
 }
 
+// reture type: *LinuxMemory, *LinuxCPU or nil.
 func (c *Cgroup) Resource() any {
 	switch c.Type {
 	case (CGROUP_CPU):
-
+		cpc, ok := c.Meta.(*CpuCgroup)
+		if !ok {
+			return nil
+		}
+		return cpc.To()
 	case (CGROUP_MEM):
-
+		memc, ok := c.Meta.(*MemCgroup)
+		if !ok {
+			return nil
+		}
+		return memc.To()
 	default:
 		return nil
 	}
 }
 
 func RlimitParse(key, value string) *Rlimit {
-
-	if !strings.HasPrefix(key, RlimtPrefix) {
+	var (
+		idx int
+	)
+	if idx := strings.Index(key, RlimtSuffix); idx < 0 {
 		return nil
 	}
-
-	kind := key[len(RlimtPrefix):]
+	// TODO support select container.
+	kind := key[:idx]
 	ret := &Rlimit{}
 
 	switch strings.ToLower(kind) {
@@ -154,12 +165,15 @@ func RlimitParse(key, value string) *Rlimit {
 }
 
 func CgroupParse(key, value string) *Cgroup {
-
-	if !strings.HasPrefix(key, CgroupPrefix) {
+	var (
+		idx int
+	)
+	if idx := strings.Index(key, CgroupSuffix); idx < 0 {
 		return nil
 	}
 
-	kind := key[len(CgroupPrefix):]
+	// TODO support select container.
+	kind := key[:idx]
 	ret := &Cgroup{}
 
 	switch strings.ToLower(kind) {

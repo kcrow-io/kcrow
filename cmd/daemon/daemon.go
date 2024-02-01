@@ -4,7 +4,6 @@
 package daemon
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -87,10 +86,7 @@ func DaemonMain() {
 		}
 	}
 
-	controllerContext.InnerCtx, controllerContext.InnerCancel = context.WithCancel(context.Background())
-	klog.Info("Begin to initialize controller metrics HTTP server")
-
-	klog.Info("Begin to initialize controller runtime manager")
+	klog.Info("Begin to initialize controller manager")
 	mgr, err := newCRDManager(&controllerContext.Cfg)
 	if nil != err {
 		klog.Fatal(err.Error())

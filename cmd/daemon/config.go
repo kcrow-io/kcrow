@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 )
 
 var controllerContext = new(ControllerContext)
@@ -73,7 +73,7 @@ type ControllerContext struct {
 	DynamicClient *dynamic.DynamicClient
 
 	// manager
-	CRDManager ctrl.Manager
+	CRDManager cluster.Cluster
 
 	// probe
 	IsStartupProbe atomic.Bool

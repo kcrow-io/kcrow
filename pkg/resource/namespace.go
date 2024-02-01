@@ -25,7 +25,7 @@ type NamespaceRsc struct {
 	mu        sync.RWMutex
 	resources map[string]*nsResource
 
-	syncedFn func() bool
+	HadSynced func() bool
 }
 
 func NewNsControl(ctx context.Context, reader cache.Cache) *NamespaceRsc {
@@ -59,7 +59,7 @@ func (nr *NamespaceRsc) probe() error {
 	if err != nil {
 		return err
 	}
-	nr.syncedFn = func() bool {
+	nr.HadSynced = func() bool {
 		return hadsync.HasSynced()
 	}
 	return nil
@@ -123,7 +123,7 @@ func (nr *NamespaceRsc) OnDelete(obj interface{}) {
 }
 
 func (nr *NamespaceRsc) IterCgroup(ns string, fn func(*Cgroup) bool) {
-	if !nr.syncedFn() {
+	if !nr.HadSynced() {
 		return
 	}
 
@@ -144,7 +144,7 @@ func (nr *NamespaceRsc) IterCgroup(ns string, fn func(*Cgroup) bool) {
 }
 
 func (nr *NamespaceRsc) IterRlimit(ns string, fn func(*Rlimit) bool) {
-	if !nr.syncedFn() {
+	if !nr.HadSynced() {
 		return
 	}
 
