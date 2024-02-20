@@ -4,9 +4,9 @@
 package main
 
 import (
-	"github.com/yylt/kcrow/cmd/daemon"
+	"github.com/yylt/kcrow/cmd/daemon/cmd"
 )
 
 func main() {
-	daemon.Execute()
+	cmd.Execute()
 }

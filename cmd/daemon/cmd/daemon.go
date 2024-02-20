@@ -1,7 +1,7 @@
 // Copyright 2023 Authors of kcrow
 // SPDX-License-Identifier: Apache-2.0
 
-package daemon
+package cmd
 
 import (
 	"fmt"
@@ -12,6 +12,9 @@ import (
 
 	"github.com/google/gops/agent"
 	"github.com/grafana/pyroscope-go"
+	"github.com/yylt/kcrow/pkg"
+	"github.com/yylt/kcrow/pkg/resource"
+	"github.com/yylt/kcrow/pkg/util"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -91,33 +94,17 @@ func DaemonMain() {
 	if nil != err {
 		klog.Fatal(err.Error())
 	}
-	controllerContext.CRDManager = mgr
-
-	clientSet, err := initK8sClientSet()
-	if nil != err {
-		klog.Fatal(err.Error())
-	}
-	controllerContext.ClientSet = clientSet
-
-	dynamicClient, err := initDynamicClient()
-	if nil != err {
-		klog.Fatal(err.Error())
-	}
-	controllerContext.DynamicClient = dynamicClient
+	controllerContext.CRDCluster = mgr
 
 	// init managers...
 	initControllerServiceManagers(controllerContext)
 
 	go func() {
 		klog.Info("Starting controller runtime manager")
-		if err := mgr.Start(controllerContext.InnerCtx); err != nil {
-			klog.Fatal(err.Error())
-		}
+		util.TimeBackoff(func() error {
+			return mgr.Start(controllerContext.InnerCtx)
+		}, 0)
 	}()
-	waitForCacheSync := mgr.GetCache().WaitForCacheSync(controllerContext.InnerCtx)
-	if !waitForCacheSync {
-		klog.Fatal("failed to wait for syncing controller-runtime cache")
-	}
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
@@ -138,7 +125,16 @@ func WatchSignal(sigCh chan os.Signal) {
 }
 
 func initControllerServiceManagers(ctrlctx *ControllerContext) {
+	node := resource.NewNodeControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
+	namespace := resource.NewNsControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
 
+	rsc := resource.New(ctrlctx.InnerCtx, namespace, node, ctrlctx.CRDCluster.GetClient())
+
+	hub, err := pkg.New(rsc, ctrlctx.InnerCtx)
+	if err != nil {
+		panic(err)
+	}
+	hub.Start()
 }
 
 // initK8sClientSet will new kubernetes Clientset

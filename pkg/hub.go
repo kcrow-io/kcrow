@@ -3,11 +3,9 @@ package pkg
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/cluster"
-
-	"github.com/containerd/nri/pkg/api"
 	"github.com/containerd/nri/pkg/stub"
 	"github.com/yylt/kcrow/pkg/resource"
+	"github.com/yylt/kcrow/pkg/util"
 )
 
 const (
@@ -15,42 +13,29 @@ const (
 	index = "0"
 )
 
-type ResourceController struct {
-	rsc *resource.ResManage
-
+type Hub struct {
+	s   stub.Stub
 	ctx context.Context
-
-	s stub.Stub
 }
 
-func NewResourceController(mgr cluster.Cluster, ctx context.Context) (*ResourceController, error) {
-	var err error
-
-	rc := &ResourceController{
-		ctx: ctx,
-	}
-	node := resource.NewNodeControl(ctx, mgr.GetCache())
-	namespace := resource.NewNsControl(ctx, mgr.GetCache())
-	rc.rsc = resource.New(namespace, node)
-
-	rc.s, err = stub.New(rc,
+func New(rc *resource.ResManage, ctx context.Context) (*Hub, error) {
+	s, err := stub.New(rc,
 		stub.WithPluginIdx(index),
 		stub.WithPluginName(name),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return rc, rc.probe()
+	return &Hub{
+		s:   s,
+		ctx: ctx,
+	}, nil
 }
 
-func (h *ResourceController) probe() error {
-
-}
-
-func (h *ResourceController) Start() error {
-
-}
-
-func (h *ResourceController) CreateContainer(context.Context, *api.PodSandbox, *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
-
+func (h *Hub) Start() {
+	go func() {
+		util.TimeBackoff(func() error {
+			return h.s.Start(h.ctx)
+		}, 0)
+	}()
 }

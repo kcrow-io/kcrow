@@ -1,7 +1,7 @@
 // Copyright 2023 Authors of kcrow
 // SPDX-License-Identifier: Apache-2.0
 
-package daemon
+package cmd
 
 import (
 	"context"
@@ -13,8 +13,6 @@ import (
 
 	"github.com/spf13/pflag"
 	"gopkg.in/yaml.v2"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 )
@@ -68,12 +66,8 @@ type ControllerContext struct {
 	InnerCtx    context.Context
 	InnerCancel context.CancelFunc
 
-	// kubernetes Clientset
-	ClientSet     *kubernetes.Clientset
-	DynamicClient *dynamic.DynamicClient
-
-	// manager
-	CRDManager cluster.Cluster
+	// cluster
+	CRDCluster cluster.Cluster
 
 	// probe
 	IsStartupProbe atomic.Bool

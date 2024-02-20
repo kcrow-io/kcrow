@@ -1,7 +1,7 @@
 // Copyright 2023 Authors of kcrow
 // SPDX-License-Identifier: Apache-2.0
 
-package daemon
+package cmd
 
 import (
 	"fmt"
@@ -49,16 +49,10 @@ func newCRDManager(cfg *Config) (cluster.Cluster, error) {
 func TransNode(in interface{}) (out interface{}, err error) {
 	v, ok := in.(*corev1.Node)
 	if ok {
-		AddressesCopy := make([]corev1.NodeAddress, len(v.Status.Addresses))
-		copy(AddressesCopy, v.Status.Addresses)
-
 		return &corev1.Node{
 			TypeMeta:   v.TypeMeta,
 			ObjectMeta: v.ObjectMeta,
 			Spec:       *v.Spec.DeepCopy(),
-			Status: corev1.NodeStatus{
-				Addresses: AddressesCopy,
-			},
 		}, nil
 	}
 	return nil, fmt.Errorf("it is not node type")

@@ -13,10 +13,11 @@ func Backoff(rfn Retfn) error {
 	return backoff.Retry(backoff.Operation(rfn), newbo)
 }
 
-func TimeBackoff(rfn Retfn) error {
+// maxtime is 0 will forever
+func TimeBackoff(rfn Retfn, maxtime time.Duration) error {
 	expbf := backoff.NewExponentialBackOff()
 	expbf.InitialInterval = time.Second * 1
-	expbf.MaxElapsedTime = time.Second * 30
+	expbf.MaxElapsedTime = maxtime
 
 	return backoff.Retry(backoff.Operation(rfn), expbf)
 }

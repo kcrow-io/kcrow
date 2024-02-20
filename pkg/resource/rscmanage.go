@@ -18,38 +18,36 @@ const (
 type ResManage struct {
 	ctx context.Context
 
-	client.Client
+	// po annotation by kubernetes client
+	usecli bool
+	cli    client.Client
 
-	nsctl NamespaceRsc
-	noctl NodeRsc
+	nsctl *NamespaceRsc
+	noctl *NodeRsc
 }
 
-func New(nsctl *NamespaceRsc, noctl *NodeRsc) *ResManage {
-	ctr := &ResManage{}
+func New(ctx context.Context, nsctl *NamespaceRsc, noctl *NodeRsc, cli client.Client) *ResManage {
+	ctr := &ResManage{
+		ctx: ctx,
+		cli: cli,
+
+		nsctl: nsctl,
+		noctl: noctl,
+	}
 	return ctr
 }
 
 // Priority order is pod > node > namespace
-func (c *ResManage) CgroupInfo(sb *api.PodSandbox, ct *api.Container) *api.LinuxResources {
+func (c *ResManage) CgroupInfo(sb *api.PodSandbox, ct *api.Container, poannotation map[string]string) *api.LinuxResources {
 	if sb == nil || ct == nil {
 		return nil
 	}
-	// api.Container annotations is not equal pod
-	nsname := getPodInfo(ct)
-	if nsname.Name == "" {
-		return nil
-	}
-	var (
-		po = &corev1.Pod{}
 
+	var (
 		cpuc = &api.LinuxCPU{}
 		memc = &api.LinuxMemory{}
 	)
-	err := c.Client.Get(c.ctx, nsname, po)
-	if err != nil {
-		klog.Errorf("pod %s get failed: %v", nsname, err)
-		return nil
-	}
+
 	fn := func(cp *Cgroup) {
 		//not override
 		switch cp.Type {
@@ -66,7 +64,7 @@ func (c *ResManage) CgroupInfo(sb *api.PodSandbox, ct *api.Container) *api.Linux
 		}
 	}
 
-	for k, v := range po.Annotations {
+	for k, v := range poannotation {
 		cp := CgroupParse(k, v)
 		if cp == nil {
 			continue
@@ -87,24 +85,14 @@ func (c *ResManage) CgroupInfo(sb *api.PodSandbox, ct *api.Container) *api.Linux
 	}
 }
 
-func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container) []*api.POSIXRlimit {
+func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container, poannotation map[string]string) []*api.POSIXRlimit {
 	if sb == nil || ct == nil {
 		return nil
 	}
-	// api.Container annotations is not equal pod
-	nsname := getPodInfo(ct)
-	if nsname.Name == "" {
-		return nil
-	}
 	var (
-		po     = &corev1.Pod{}
 		rlimit = map[RlimitRsc]*Rlimit{}
 	)
-	err := c.Client.Get(c.ctx, nsname, po)
-	if err != nil {
-		klog.Errorf("pod %s get failed: %v", nsname, err)
-		return nil
-	}
+
 	fn := func(rl *Rlimit) {
 		v, ok := rlimit[rl.Type]
 		if !ok {
@@ -114,7 +102,9 @@ func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container) []*api.POS
 		//not override
 		rl.Merge(v, false)
 	}
-	for k, v := range po.Annotations {
+
+	// high level
+	for k, v := range poannotation {
 		cp := RlimitParse(k, v)
 		if cp == nil {
 			continue
@@ -138,6 +128,39 @@ func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container) []*api.POS
 		i++
 	}
 	return rs
+}
+
+func (c *ResManage) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
+	var (
+		annotations map[string]string
+		po          = &corev1.Pod{}
+	)
+	nsname := getPodInfo(ct)
+	if nsname.Name == "" {
+		return nil, nil, nil
+	}
+	// NOTICE: containerd should not erase kcrow.io annotation
+	// reference: https://github.com/containerd/containerd/blob/main/docs/cri/config.md#full-configuration container_annotations
+	if c.usecli {
+		err := c.cli.Get(c.ctx, nsname, po)
+		if err != nil {
+			klog.Warningf("pod %s get failed: %v", nsname, err)
+			klog.Warning("skip pod annotations")
+		} else {
+			annotations = po.Annotations
+		}
+	} else {
+		annotations = ct.Annotations
+	}
+
+	lres := c.CgroupInfo(p, ct, annotations)
+
+	prlim := c.RlimitInfo(p, ct, annotations)
+	adjust := &api.ContainerAdjustment{}
+	adjust.Linux.Resources = lres
+	adjust.Rlimits = prlim
+	return adjust, nil, nil
+
 }
 
 func getPodInfo(ct *api.Container) types.NamespacedName {

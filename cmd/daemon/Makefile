@@ -1,6 +1,6 @@
 include ../../Makefile.defs
 
-TARGET := kcrow-controller
+TARGET := ../../bin/daemon
 
 all: $(TARGET)
 
