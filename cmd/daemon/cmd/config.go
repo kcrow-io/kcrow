@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,8 +13,8 @@ import (
 	"sync/atomic"
 
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 )
 
@@ -49,13 +50,8 @@ type Config struct {
 	GoMaxProcs    int
 
 	// flags
-	ConfigPath       string
 	GopsListenPort   string
 	PyroscopeAddress string
-
-	// configmap
-	LogLevel     string `yaml:"logLevel,omitempty"`
-	EnableMetric bool   `yaml:"enableMetric,omitempty"`
 }
 
 type ControllerContext struct {
@@ -74,10 +70,19 @@ type ControllerContext struct {
 }
 
 // BindControllerDaemonFlags bind controller cli daemon flags
-func (cc *ControllerContext) BindControllerDaemonFlags(flags *pflag.FlagSet) {
-	flags.StringVar(&cc.Cfg.ConfigPath, "config-path", "", "controller configmap file")
-	flags.StringVar(&cc.Cfg.GopsListenPort, "gops-port", "5724", "gops listen port")
-	flags.StringVar(&cc.Cfg.PyroscopeAddress, "pyroscope-address", "", "pyroscope address")
+func (cc *ControllerContext) BindControllerDaemonFlags(fs *pflag.FlagSet) {
+	var (
+		kubeflags = &flag.FlagSet{}
+		logflags  = &flag.FlagSet{}
+	)
+
+	klog.InitFlags(logflags)
+	config.RegisterFlags(kubeflags)
+	fs.AddGoFlagSet(logflags)
+	fs.AddGoFlagSet(kubeflags)
+
+	fs.StringVar(&cc.Cfg.GopsListenPort, "gops-port", "", "gops listen port")
+	fs.StringVar(&cc.Cfg.PyroscopeAddress, "pyroscope-address", "", "pyroscope address")
 }
 
 // ParseConfiguration set the env to AgentConfiguration
@@ -126,19 +131,4 @@ func ParseConfiguration() error {
 // verify after retrieve all config
 func (cc *ControllerContext) Verify() {
 	// loglevel
-}
-
-// LoadConfigmap reads configmap data from cli flag config-path
-func (cc *ControllerContext) LoadConfigmap() error {
-	configmapBytes, err := os.ReadFile(cc.Cfg.ConfigPath)
-	if nil != err {
-		return fmt.Errorf("failed to read config file %s, error: %v", cc.Cfg.ConfigPath, err)
-	}
-
-	err = yaml.Unmarshal(configmapBytes, &cc.Cfg)
-	if nil != err {
-		return fmt.Errorf("failed to parse configmap, error: %v", err)
-	}
-
-	return nil
 }

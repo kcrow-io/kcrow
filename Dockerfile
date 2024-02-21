@@ -10,5 +10,5 @@ ARG TARGETOS
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
 ARG TARGETARCH
 
-COPY output/${TARGETARCH}/bin/*   /usr/bin/
-CMD ["/usr/bin/kcrow-controller daemon"]
+COPY bin/*   /usr/bin/
+CMD ["/usr/bin/daemon daemon"]

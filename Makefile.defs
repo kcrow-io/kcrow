@@ -30,7 +30,7 @@ CONTAINER_ENGINE?=docker
 #----------build-image--------
 REGISTER ?= ghcr.io
 GIT_REPO ?= yylt/kcrow
-CONTROLLER_IMAGE_NAME := ${REGISTER}/${GIT_REPO}/controller
+CONTROLLER_IMAGE_NAME := ${REGISTER}/${GIT_REPO}/daemon
 IMAGES := ${CONTROLLER_IMAGE_NAME}
 
 VERSION = $(shell cat $(dir $(lastword $(MAKEFILE_LIST)))/VERSION)

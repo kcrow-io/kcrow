@@ -1,23 +1,23 @@
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "kcrowpam.chart" -}}
+{{- define "kcrow.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Expand the name of kcrowpam .
+Expand the name of kcrow .
 */}}
-{{- define "kcrowpam.name" -}}
-{{- default "kcrowpam" .Values.global.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- define "kcrow.name" -}}
+{{- default "kcrow" .Values.global.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "kcrowpam.Controller.labels" -}}
-helm.sh/chart: {{ include "kcrowpam.chart" . }}
-{{ include "kcrowpam.Controller.selectorLabels" . }}
+{{- define "kcrow.controller.labels" -}}
+helm.sh/chart: {{ include "kcrow.chart" . }}
+{{ include "kcrow.controller.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -28,8 +28,8 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Controller Selector labels
 */}}
-{{- define "kcrowpam.Controller.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "kcrowpam.name" . }}
+{{- define "kcrow.controller.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "kcrow.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
 {{- end }}
@@ -86,7 +86,7 @@ Return the appropriate apiVersion for RBAC resources.
 {{/*
 return the Controller image
 */}}
-{{- define "kcrowpam.Controller.image" -}}
+{{- define "kcrow.controller.image" -}}
 {{- $registryName := .Values.controller.image.registry -}}
 {{- $repositoryName := .Values.controller.image.repository -}}
 {{- if .Values.global.imageRegistryOverride }}

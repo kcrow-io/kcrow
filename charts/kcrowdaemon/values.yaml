@@ -23,8 +23,6 @@ global:
   #  label1: v1
   #  labele: v2
 
-  ## @param global.configName the configmap name
-  configName: "kcrowpam-conf"
 
 ## @section controller parameters
 ##
@@ -36,7 +34,7 @@ controller:
   replicas: 1
 
   ## @param controller.binName the binName name of controller
-  binName: "/usr/bin/kcrow-controller"
+  binName: "/usr/bin/daemon"
 
   ## @param controller.hostnetwork enable hostnetwork mode of controller pod. 
   ## Notice, if no CNI available before kcrow installation, must enable this
@@ -138,67 +136,3 @@ controller:
       ## @param controller.resources.requests.memory the memory requests of controller pod
       memory: 64Mi
 
-  ## @param controller.httpPort the http Port for controller, for health checking and http service
-  httpPort: 5720
-
-  healthChecking:
-    startupProbe:
-      ## @param controller.healthChecking.startupProbe.failureThreshold the failure threshold of startup probe for controller health checking
-      failureThreshold: 30
-
-      ## @param controller.healthChecking.startupProbe.periodSeconds the period seconds of startup probe for controller health checking
-      periodSeconds: 2
-
-    livenessProbe:
-      ## @param controller.healthChecking.livenessProbe.failureThreshold the failure threshold of startup probe for controller health checking
-      failureThreshold: 6
-
-      ## @param controller.healthChecking.livenessProbe.periodSeconds the period seconds of startup probe for controller health checking
-      periodSeconds: 10
-
-    readinessProbe:
-      ## @param controller.healthChecking.readinessProbe.failureThreshold the failure threshold of startup probe for controller health checking
-      failureThreshold: 3
-
-      ## @param controller.healthChecking.readinessProbe.periodSeconds the period seconds of startup probe for controller health checking
-      periodSeconds: 10
-
-  ## @param controller.webhookPort the http port for controller webhook
-  webhookPort: 5722
-
-  prometheus:
-    ## @param controller.prometheus.enabled enable Controller to collect metrics
-    enabled: false
-
-    ## @param controller.prometheus.enabledDebugMetric enable Controller to collect debug level metrics
-    enabledDebugMetric: false
-
-    ## @param controller.prometheus.port the metrics port of Controller
-    port: 5721
-
-
-
-## @section ipam parameters
-##
-ipam:
-  ## @param Openstack.preAllocated max avaliable ip.
-  preAllocated: 20
-
-  ## @param Openstack.minAvaliabled min avaliable ip.
-  minAvaliabled: 3
-
-  ## @param Openstack.workerNumber worker number.
-  workerNumber: 20
-
-
-## @section Openstack parameters
-##
-openstack:
-  ## @param Openstack.authUrl Global for which is used openstack keystone.
-  authUrl: ""
-
-  applicationCredentialId: ""
-  applicationCredentialSecret: ""
-  defaultSubnatId: ""
-  defaultSubnatProjectId: ""
-  defaultRegion: ""

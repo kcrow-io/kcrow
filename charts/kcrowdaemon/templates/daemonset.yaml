@@ -7,7 +7,7 @@ spec:
   replicas: {{ .Values.controller.replicas }}
   selector:
     matchLabels:
-      {{- include "kcrowpam.Controller.selectorLabels" . | nindent 6 }}
+      {{- include "kcrow.controller.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- if or .Values.controller.podAnnotations .Values.global.commonAnnotations }}
@@ -20,7 +20,7 @@ spec:
         {{- end }}
         {{- end }}
       labels:
-        {{- include "kcrowpam.Controller.selectorLabels" . | nindent 8 }}
+        {{- include "kcrow.controller.selectorLabels" . | nindent 8 }}
         {{- if .Values.global.commonLabels }}
         {{- include "tplvalues.render" ( dict "value" .Values.global.commonLabels "context" $ ) | nindent 8 }}
         {{- end }}
@@ -47,31 +47,18 @@ spec:
       nodeSelector:
       {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- end }}
       containers:
       - name: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
-        image: {{ include "kcrowpam.Controller.image" . | quote }}
+        image: {{ include "kcrow.controller.image" . | quote }}
         imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
         command:
         - {{ .Values.controller.binName }}
         args:
         - daemon
-        - --config-path=/tmp/config-map/conf.yml
+        - --kubeconfig=/opt/kubeconfig
         {{- with .Values.controller.extraArgs }}
         {{- toYaml . | trim | nindent 8 }}
         {{- end }}
-        ports:
-        {{- if .Values.controller.prometheus.enabled }}
-        - name: metrics
-          containerPort: {{ .Values.controller.prometheus.port }}
-          protocol: TCP
-        {{- end }}
-        - name: http
-          containerPort: {{ .Values.controller.httpPort }}
-          protocol: TCP
-        - name: webhook
-          containerPort: {{ .Values.controller.webhookPort }}
-          protocol: TCP
         {{- with .Values.controller.resources }}
         resources:
         {{- toYaml . | trim | nindent 10 }}
@@ -83,34 +70,6 @@ spec:
                 - {{ .Values.controller.binName }}
                 - shutdown
         env:
-        - name: ENI_LOG_LEVEL
-          value: {{ .Values.controller.debug.logLevel | quote }}
-        - name: ENI_ENABLED_METRIC
-          value: {{ .Values.controller.prometheus.enabled | quote }}
-        - name: ENI_ENABLED_DEBUG_METRIC
-          value: {{ .Values.controller.prometheus.enabledDebugMetric | quote }}
-        - name: ENI_METRIC_HTTP_PORT
-          value: {{ .Values.controller.prometheus.port | quote }}
-        - name: ENI_GOPS_LISTEN_PORT
-          value: {{ .Values.controller.debug.gopsPort | quote }}
-        - name: ENI_TYPE
-          value: {{ .Values.controller.infraType | quote }}
-        - name: ENI_INFRA_TIMEOUT
-          value: {{ .Values.controller.infraTimeout | quote }}
-        - name: ENI_INFRAMUTEX
-          value: {{ .Values.controller.infraMutex | quote }}
-        - name: ENI_OPENSTACK_AUTH_URL
-          value: {{ .Values.openstack.authUrl | quote }}
-        - name: ENI_OPENSTACK_APPLICATION_CREDENTIAL_ID
-          value: {{ .Values.openstack.applicationCredentialId | quote }}
-        - name: ENI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET
-          value: {{ .Values.openstack.applicationCredentialSecret | quote }}
-        - name: ENI_OPENSTACK_DEFAULT_SUBNAT_ID
-          value: {{ .Values.openstack.defaultSubnatId | quote }}
-        - name: ENI_OPENSTACK_DEFAULT_PROJECT_ID
-          value: {{ .Values.openstack.defaultSubnatProjectId | quote }}
-        - name: ENI_OPENSTACK_DEFAULT_REGION
-          value: {{ .Values.openstack.authUrl | quote }}
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -119,6 +78,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         {{- with .Values.controller.extraEnv }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -127,11 +90,11 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
         volumeMounts:
-        - name: config-path
-          mountPath: /tmp/config-map
+        - mountPath: /opt/kubeconfig
+          name: kubeconfig
           readOnly: true
       volumes:
-      # To read the configuration from the config map
-      - name: config-path
-        configMap:
-          name: {{ .Values.global.configName }}
+      - name: kubeconfig
+        hostPath:
+          path: /etc/kubernetes/kubeconfig.yaml
+          type: File

@@ -44,12 +44,6 @@ func DaemonMain() {
 		klog.Infof("Change max golang procs to %d", p)
 	}
 
-	// Load global Comfigmap.
-	if err := controllerContext.LoadConfigmap(); err != nil {
-		klog.Warning(err)
-	}
-	klog.Infof("Eni-controller config: %+v", controllerContext.Cfg)
-
 	// Set up gops.
 	if controllerContext.Cfg.GopsListenPort != "" {
 		address := "127.0.0.1:" + controllerContext.Cfg.GopsListenPort
