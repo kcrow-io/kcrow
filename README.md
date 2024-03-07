@@ -4,10 +4,14 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/yylt/kcrow/badge)](https://www.codefactor.io/repository/github/yylt/kcrowl)
 [![codecov](https://codecov.io/gh/yylt/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/yylt/kcrow)
 
-[**English**](./README-en.md) | **简体中文**
+**English** | [**简体中文**](./README-zh.md)
 
 ## Overview
-This project is developed based on the NRI interface and is used to implement multi-tenant resource control. The resources include ulimits, CPU, and memory cgroup settings. It supports adding annotations to nodes and namespaces to complete the configuration. The annotation configuration priorities are pod > node > namespace.
+This project is developed based on the NRI interface and is used to implement multi-tenant resource control. The resources include ulimits, CPU, and memory cgroup settings, more detail about [nri](https://github.com/containerd/nri).
+
+Kcrow supports adding annotations to pod, node and namespaces to complete the configuration. 
+
+The annotation configuration priorities are **pod > node > namespace**.
 
 ## Quick Start
 
