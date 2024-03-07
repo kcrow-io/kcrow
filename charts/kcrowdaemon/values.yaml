@@ -30,15 +30,25 @@ controller:
   ## @param controller.name the controller name
   name: "kcrow-controller"
 
-  ## @param controller.replicas the replicas number of controller pod
-  replicas: 1
-
   ## @param controller.binName the binName name of controller
   binName: "/usr/bin/daemon"
 
   ## @param controller.hostnetwork enable hostnetwork mode of controller pod. 
   ## Notice, if no CNI available before kcrow installation, must enable this
   hostnetwork: true
+
+  ## @param controller.nrisock the nri socket path
+  nriSock: "/run/nri/nri.sock"
+
+  ## @param controller.kubeconfig the kubeconfig file path, 
+  ## Notice, When this is configured, the serviceAccount will be ignored.
+  kubeconfig: "/etc/kubernetes/kubeconfig.yaml"
+
+  serviceAccount:
+    ## @param controller.serviceAccount.create create the service account for the controller
+    create: true
+    ## @param controller.serviceAccount.annotations the annotations of controller service account
+    annotations: {}
 
   image:
     ## @param controller.image.registry the image registry of controller
@@ -54,21 +64,11 @@ controller:
     digest: ""
 
     ## @param controller.image.tag the image tag of controller, overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: "latest"
 
     ## @param controller.image.imagePullSecrets the image imagePullSecrets of controller
     imagePullSecrets: []
     # - name: "image-pull-secret"
-
-  ## @param controller.infraType use which kind infra. 
-  ## now support openstack, ali
-  infraType: openstack
-
-  ## @param controller.infraTimeout which read timeout for infra connection. 
-  infraTimeout: "60"
-
-  ## @param controller.infraMutex which create is mutex with update operation. 
-  infraMutex: "true"
 
   ## @skip controller.nodeSelector.kubernetes.io/os
   nodeSelector:
@@ -80,12 +80,6 @@ controller:
 
     ## @param controller.debug.gopsPort the gops port of Controller
     gopsPort: 5724
-
-  serviceAccount:
-    ## @param controller.serviceAccount.create create the service account for the controller
-    create: true
-    ## @param controller.serviceAccount.annotations the annotations of controller service account
-    annotations: {}
 
   ## @skip controller.tolerations
   tolerations:

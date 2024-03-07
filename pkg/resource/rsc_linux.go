@@ -5,13 +5,7 @@ package resource
 
 import "github.com/containerd/nri/pkg/api"
 
-const (
-	CGROUP_CPU CgroupRsc = "cpu"
-
-	CGROUP_MEM CgroupRsc = "mem"
-)
-
-// Must calculate the upper level's content before whether it can be modified.
+// Must judge the upper level's content before  modified .
 type CpuCgroup struct {
 	Shares *uint64 `json:"shares,omitempty"`
 	Quota  *int64  `json:"quota,omitempty"`

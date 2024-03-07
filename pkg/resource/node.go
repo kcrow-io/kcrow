@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	toolscache "k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
@@ -20,10 +21,10 @@ type NodeRsc struct {
 	reader cache.Cache
 
 	cgmu sync.RWMutex
-	cg   map[CgroupRsc]*Cgroup
+	cg   map[string]*Cgroup
 
 	rlmu   sync.RWMutex
-	rlimit map[RlimitRsc]*Rlimit
+	rlimit map[string]*Rlimit
 
 	syncedFn func() bool
 }
@@ -32,10 +33,13 @@ type NodeRsc struct {
 func NewNodeControl(ctx context.Context, reader cache.Cache) *NodeRsc {
 	no := &NodeRsc{
 		reader: reader,
-		cg:     map[CgroupRsc]*Cgroup{},
-		rlimit: map[RlimitRsc]*Rlimit{},
+		cg:     map[string]*Cgroup{},
+		rlimit: map[string]*Rlimit{},
 	}
-	no.probe()
+	err := no.probe()
+	if err != nil {
+		panic(err)
+	}
 	return no
 }
 
@@ -77,12 +81,14 @@ func (no *NodeRsc) add(n *corev1.Node) {
 	for k, v := range n.Annotations {
 		cg := CgroupParse(k, v)
 		if cg != nil {
+			klog.Infof("node %s, cgroup %v", n.Name, cg)
 			no.cgmu.Lock()
 			no.cg[cg.Type] = cg
 			no.cgmu.Unlock()
 		}
 		rl := RlimitParse(k, v)
 		if rl != nil {
+			klog.Infof("node %s, rlimit %v", n.Name, rl)
 			no.rlmu.Lock()
 			no.rlimit[rl.Type] = rl
 			no.rlmu.Unlock()
@@ -100,7 +106,7 @@ func (no *NodeRsc) OnUpdate(oldObj, newObj interface{}) {
 
 // do nothing
 func (no *NodeRsc) OnDelete(obj interface{}) {
-	return
+
 }
 
 func (no *NodeRsc) IterCgroup(fn func(*Cgroup) bool) {

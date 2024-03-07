@@ -4,7 +4,7 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
 	"os"
 	"os/signal"
 	"runtime"
@@ -15,9 +15,6 @@ import (
 	"github.com/yylt/kcrow/pkg"
 	"github.com/yylt/kcrow/pkg/resource"
 	"github.com/yylt/kcrow/pkg/util"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/klog/v2"
 )
@@ -55,7 +52,7 @@ func DaemonMain() {
 			klog.Fatalf("gops failed to listen on %s: %v", address, err)
 		}
 		defer agent.Close()
-		klog.Infof("gops is listkcrowng on %s", address)
+		klog.Infof("gops is listen on %s", address)
 	}
 
 	// Set up pyroscope.
@@ -82,7 +79,7 @@ func DaemonMain() {
 			klog.Fatalf("Failed to setup pyroscope: %v", e)
 		}
 	}
-
+	controllerContext.InnerCtx, controllerContext.InnerCancel = context.WithCancel(context.Background())
 	klog.Info("Begin to initialize controller manager")
 	mgr, err := newCRDManager(&controllerContext.Cfg)
 	if nil != err {
@@ -95,8 +92,18 @@ func DaemonMain() {
 
 	go func() {
 		klog.Info("Starting controller runtime manager")
-		util.TimeBackoff(func() error {
-			return mgr.Start(controllerContext.InnerCtx)
+		util.TimeBackoff(func() error { // nolint
+			err = mgr.Start(controllerContext.InnerCtx)
+			if err != nil {
+				klog.Errorf("cluster controller start failed:%v", err)
+			}
+			select {
+			case <-controllerContext.InnerCtx.Done():
+				klog.Warning("cluster exit.")
+				return nil
+			default:
+				return err
+			}
 		}, 0)
 	}()
 
@@ -108,13 +115,14 @@ func DaemonMain() {
 // WatchSignal notifies the signal to shut down controllerContext handlers.
 func WatchSignal(sigCh chan os.Signal) {
 	for sig := range sigCh {
-		klog.Warningf("received shutdown", "signal", sig)
+		klog.Warning("received shutdown, ", "signal: ", sig)
 
 		// Cancel the internal context of controller.
 		if controllerContext.InnerCancel != nil {
 			controllerContext.InnerCancel()
 		}
 		// others...
+		os.Exit(0)
 	}
 }
 
@@ -129,23 +137,4 @@ func initControllerServiceManagers(ctrlctx *ControllerContext) {
 		panic(err)
 	}
 	hub.Start()
-}
-
-// initK8sClientSet will new kubernetes Clientset
-func initK8sClientSet() (*kubernetes.Clientset, error) {
-	clientSet, err := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
-	if nil != err {
-		return nil, fmt.Errorf("failed to init K8s clientset: %v", err)
-	}
-
-	return clientSet, nil
-}
-
-func initDynamicClient() (*dynamic.DynamicClient, error) {
-	dynamicClient, err := dynamic.NewForConfig(ctrl.GetConfigOrDie())
-	if nil != err {
-		return nil, fmt.Errorf("failed to init Kubernetes dynamic client: %v", err)
-	}
-
-	return dynamicClient, nil
 }

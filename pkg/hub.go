@@ -6,11 +6,12 @@ import (
 	"github.com/containerd/nri/pkg/stub"
 	"github.com/yylt/kcrow/pkg/resource"
 	"github.com/yylt/kcrow/pkg/util"
+	"k8s.io/klog/v2"
 )
 
 const (
 	name  = "ResourceController"
-	index = "0"
+	index = "05"
 )
 
 type Hub struct {
@@ -34,8 +35,20 @@ func New(rc *resource.ResManage, ctx context.Context) (*Hub, error) {
 
 func (h *Hub) Start() {
 	go func() {
-		util.TimeBackoff(func() error {
-			return h.s.Start(h.ctx)
+		util.TimeBackoff(func() error { //nolint
+			err := h.s.Run(h.ctx)
+			if err != nil {
+				klog.Errorf("nri hub start failed:%v", err)
+				h.s.Stop()
+			}
+			select {
+			case <-h.ctx.Done():
+				klog.Warning("context cancle, nri hub exit.")
+				return nil
+			default:
+				klog.Warning("server exit, msg: %v", err)
+				return err
+			}
 		}, 0)
 	}()
 }

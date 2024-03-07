@@ -2,15 +2,10 @@ package util
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/emirpasic/gods/maps/hashmap"
 	"github.com/emirpasic/gods/sets/hashset"
-)
-
-var (
-	randseed = rand.NewSource(37)
 )
 
 type CallbackFn func(any)

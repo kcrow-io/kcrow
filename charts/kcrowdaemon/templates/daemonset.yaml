@@ -4,7 +4,6 @@ metadata:
   name: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
   namespace: {{ .Release.Namespace | quote }}
 spec:
-  replicas: {{ .Values.controller.replicas }}
   selector:
     matchLabels:
       {{- include "kcrow.controller.selectorLabels" . | nindent 6 }}
@@ -34,9 +33,11 @@ spec:
       {{- toYaml . | trim | nindent 6 }}
       {{- end }}
       {{- end }}
-      serviceAccountName: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
       priorityClassName: {{ default "system-node-critical" .Values.controller.priorityClassName }}
       hostNetwork: true
+      {{- if not .Values.controller.kubeconfig }}
+      serviceAccountName: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
+      {{- end }}
       dnsPolicy: ClusterFirstWithHostNet
       restartPolicy: Always
       {{- with .Values.controller.tolerations }}
@@ -55,7 +56,9 @@ spec:
         - {{ .Values.controller.binName }}
         args:
         - daemon
+        {{- if .Values.controller.kubeconfig }}
         - --kubeconfig=/opt/kubeconfig
+        {{- end }}
         {{- with .Values.controller.extraArgs }}
         {{- toYaml . | trim | nindent 8 }}
         {{- end }}
@@ -90,11 +93,22 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
         volumeMounts:
+        {{- if .Values.controller.kubeconfig }}
         - mountPath: /opt/kubeconfig
           name: kubeconfig
           readOnly: true
+        {{- end }}
+        - mountPath: /run/nri/nri.sock
+          name: socket
+          readOnly: true
       volumes:
+      {{- if .Values.controller.kubeconfig }}
       - name: kubeconfig
         hostPath:
-          path: /etc/kubernetes/kubeconfig.yaml
+          path: {{ .Values.controller.kubeconfig }}
+          type: File
+      {{- end }}
+      - name: socket
+        hostPath:
+          path: {{ .Values.controller.nriSock }}
           type: File

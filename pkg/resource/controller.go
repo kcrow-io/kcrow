@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/containerd/nri/pkg/api"
+	"github.com/yylt/kcrow/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -44,26 +45,40 @@ func (c *ResManage) CgroupInfo(sb *api.PodSandbox, ct *api.Container, poannotati
 	}
 
 	var (
+		err  error
 		cpuc = &api.LinuxCPU{}
 		memc = &api.LinuxMemory{}
 	)
 
-	fn := func(cp *Cgroup) {
-		//not override
-		switch cp.Type {
-		case CGROUP_CPU:
-			v, ok := cp.Meta.(*CpuCgroup)
-			if ok {
-				v.MergeTo(cpuc, false)
-			}
-		case CGROUP_MEM:
-			v, ok := cp.Meta.(*MemCgroup)
-			if ok {
-				v.MergeTo(memc, false)
-			}
+	if ct.Linux != nil && ct.Linux.Resources != nil {
+		if ct.Linux.Resources.Cpu != nil {
+			cpuc = ct.Linux.Resources.Cpu
+		}
+		if ct.Linux.Resources.Memory != nil {
+			memc = ct.Linux.Resources.Memory
 		}
 	}
 
+	fn := func(cp *Cgroup) {
+		switch cp.Meta.(type) {
+		case *api.LinuxCPU:
+			err = CgroupMerge(cp.Meta, cpuc, true)
+		case *api.LinuxMemory:
+			err = CgroupMerge(cp.Meta, memc, true)
+		}
+		if err != nil {
+			klog.Errorf("cgroup merge failed: %v", err)
+		}
+	}
+	c.nsctl.IterCgroup(sb.Namespace, func(cp *Cgroup) bool {
+		fn(cp)
+		return true
+	})
+	c.noctl.IterCgroup(func(cp *Cgroup) bool {
+		fn(cp)
+		return true
+	})
+	// highest prio
 	for k, v := range poannotation {
 		cp := CgroupParse(k, v)
 		if cp == nil {
@@ -71,14 +86,7 @@ func (c *ResManage) CgroupInfo(sb *api.PodSandbox, ct *api.Container, poannotati
 		}
 		fn(cp)
 	}
-	c.noctl.IterCgroup(func(cp *Cgroup) bool {
-		fn(cp)
-		return true
-	})
-	c.nsctl.IterCgroup(sb.Namespace, func(cp *Cgroup) bool {
-		fn(cp)
-		return true
-	})
+
 	return &api.LinuxResources{
 		Cpu:    cpuc,
 		Memory: memc,
@@ -90,7 +98,7 @@ func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container, poannotati
 		return nil
 	}
 	var (
-		rlimit = map[RlimitRsc]*Rlimit{}
+		rlimit = map[string]*Rlimit{}
 	)
 
 	fn := func(rl *Rlimit) {
@@ -103,7 +111,7 @@ func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container, poannotati
 		rl.Merge(v, false)
 	}
 
-	// high level
+	// highest prio
 	for k, v := range poannotation {
 		cp := RlimitParse(k, v)
 		if cp == nil {
@@ -124,7 +132,7 @@ func (c *ResManage) RlimitInfo(sb *api.PodSandbox, ct *api.Container, poannotati
 		i  = 0
 	)
 	for _, v := range rlimit {
-		rs[i] = v.Resource()
+		rs[i] = v.To()
 		i++
 	}
 	return rs
@@ -152,15 +160,33 @@ func (c *ResManage) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *
 	} else {
 		annotations = ct.Annotations
 	}
+	klog.V(2).Infof("process pod %v, annotations:%v", nsname, annotations)
 
 	lres := c.CgroupInfo(p, ct, annotations)
 
 	prlim := c.RlimitInfo(p, ct, annotations)
-	adjust := &api.ContainerAdjustment{}
-	adjust.Linux.Resources = lres
-	adjust.Rlimits = prlim
+	adjust := &api.ContainerAdjustment{
+		Linux: &api.LinuxContainerAdjustment{
+			Resources: ct.Linux.Resources,
+		},
+	}
+	if lres != nil {
+		klog.V(2).Infof("update cpu resource %v for pod %v", lres.Cpu, nsname)
+		klog.V(2).Infof("update mem resource %v for pod %v", lres.Memory, nsname)
+		adjust.Linux = &api.LinuxContainerAdjustment{
+			Resources: lres,
+		}
+	}
+	if prlim != nil {
+		for _, v := range prlim {
+			klog.V(2).Infof("rlimit %v for pod %v", v, nsname)
+		}
+		adjust.Rlimits = prlim
+	}
+	if klog.V(2).Enabled() {
+		util.Dump(ct.Name, "ContainerAdjustment", adjust)
+	}
 	return adjust, nil, nil
-
 }
 
 func getPodInfo(ct *api.Container) types.NamespacedName {

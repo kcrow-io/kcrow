@@ -6,15 +6,16 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	toolscache "k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
 type nsResource struct {
 	cgmu sync.RWMutex
-	cg   map[CgroupRsc]*Cgroup
+	cg   map[string]*Cgroup
 
 	rlmu   sync.RWMutex
-	rlimit map[RlimitRsc]*Rlimit
+	rlimit map[string]*Rlimit
 }
 
 type NamespaceRsc struct {
@@ -33,7 +34,10 @@ func NewNsControl(ctx context.Context, reader cache.Cache) *NamespaceRsc {
 		reader:    reader,
 		resources: map[string]*nsResource{},
 	}
-	nr.probe()
+	err := nr.probe()
+	if err != nil {
+		panic(err)
+	}
 	return nr
 }
 
@@ -69,9 +73,10 @@ func (nr *NamespaceRsc) add(no *corev1.Namespace) {
 	nr.mu.Lock()
 	res, ok := nr.resources[no.Name]
 	if !ok {
+		klog.Infof("add new namespace %s", no.Name)
 		nr.resources[no.Name] = &nsResource{
-			cg:     map[CgroupRsc]*Cgroup{},
-			rlimit: map[RlimitRsc]*Rlimit{},
+			cg:     map[string]*Cgroup{},
+			rlimit: map[string]*Rlimit{},
 		}
 		res = nr.resources[no.Name]
 	}
@@ -80,12 +85,14 @@ func (nr *NamespaceRsc) add(no *corev1.Namespace) {
 	for k, v := range no.Annotations {
 		cg := CgroupParse(k, v)
 		if cg != nil {
+			klog.Infof("namespace %s, cgroup %v", no.Name, cg.Meta)
 			res.cgmu.Lock()
 			res.cg[cg.Type] = cg
 			res.cgmu.Unlock()
 		}
 		rl := RlimitParse(k, v)
 		if rl != nil {
+			klog.Infof("namespace %s, rlimit %#v", no.Name, rl)
 			res.rlmu.Lock()
 			res.rlimit[rl.Type] = rl
 			res.rlmu.Unlock()
