@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containerd/nri/pkg/stub"
 	"github.com/yylt/kcrow/pkg/resource"
@@ -15,20 +16,17 @@ const (
 )
 
 type Hub struct {
-	s   stub.Stub
+	rc  *resource.ResManage
 	ctx context.Context
 }
 
 func New(rc *resource.ResManage, ctx context.Context) (*Hub, error) {
-	s, err := stub.New(rc,
-		stub.WithPluginIdx(index),
-		stub.WithPluginName(name),
-	)
+	_, err := newStub(rc)
 	if err != nil {
 		return nil, err
 	}
 	return &Hub{
-		s:   s,
+		rc:  rc,
 		ctx: ctx,
 	}, nil
 }
@@ -36,19 +34,29 @@ func New(rc *resource.ResManage, ctx context.Context) (*Hub, error) {
 func (h *Hub) Start() {
 	go func() {
 		util.TimeBackoff(func() error { //nolint
-			err := h.s.Run(h.ctx)
+			st, err := newStub(h.rc)
 			if err != nil {
-				klog.Errorf("nri hub start failed:%v", err)
-				h.s.Stop()
+				klog.Errorf("init stub failed: %v", err)
+				return err
 			}
+			err = st.Run(h.ctx)
 			select {
 			case <-h.ctx.Done():
-				klog.Warning("context cancle, nri hub exit.")
+				klog.Warning("context cancle, server exit.")
 				return nil
 			default:
-				klog.Warning("server exit, msg: %v", err)
-				return err
+				klog.Warningf("server exit: %v", err)
+				st.Stop()
+				return fmt.Errorf("server exist, errmsg: %v", err)
 			}
 		}, 0)
 	}()
+}
+
+func newStub(rc any) (stub.Stub, error) {
+	return stub.New(rc,
+		stub.WithPluginIdx(index),
+		stub.WithPluginName(name),
+		stub.WithOnClose(func() {}),
+	)
 }

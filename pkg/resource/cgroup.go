@@ -39,6 +39,20 @@ func (c *Cgroup) To() any {
 	return c.Meta
 }
 
+func (c *Cgroup) String() string {
+	if c == nil {
+		return ""
+	}
+	switch v := c.Meta.(type) {
+	case *api.LinuxCPU:
+		return v.String()
+	case *api.LinuxMemory:
+		return v.String()
+	default:
+		return ""
+	}
+}
+
 func CgroupParse(key, value string) *Cgroup {
 	var (
 		idx int

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containerd/nri/pkg/api"
+	"github.com/yylt/kcrow/pkg/util"
 	"k8s.io/klog/v2"
 )
 
@@ -61,6 +62,21 @@ func (r *Rlimit) Merge(dst *Rlimit, override bool) {
 			dst.Soft = r.Soft
 		}
 	}
+}
+func (r *Rlimit) String() string {
+	if r == nil {
+		return ""
+	}
+	buf := util.GetBuf()
+	buf.WriteString(r.Type)
+	if r.Hard != nil {
+		buf.WriteString(fmt.Sprintf(" %d(hard)", *r.Hard))
+	}
+	if r.Soft != nil {
+		buf.WriteString(fmt.Sprintf(" %d(soft)", *r.Soft))
+	}
+	defer util.PutBuf(buf)
+	return buf.String()
 }
 
 func (r *Rlimit) To() *api.POSIXRlimit {

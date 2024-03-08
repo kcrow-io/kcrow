@@ -81,14 +81,14 @@ func (no *NodeRsc) add(n *corev1.Node) {
 	for k, v := range n.Annotations {
 		cg := CgroupParse(k, v)
 		if cg != nil {
-			klog.Infof("node %s, cgroup %v", n.Name, cg)
+			klog.Infof("node %s, cgroup %s", n.Name, cg)
 			no.cgmu.Lock()
 			no.cg[cg.Type] = cg
 			no.cgmu.Unlock()
 		}
 		rl := RlimitParse(k, v)
 		if rl != nil {
-			klog.Infof("node %s, rlimit %v", n.Name, rl)
+			klog.Infof("node %s, rlimit %s", n.Name, rl)
 			no.rlmu.Lock()
 			no.rlimit[rl.Type] = rl
 			no.rlmu.Unlock()

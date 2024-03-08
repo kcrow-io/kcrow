@@ -85,14 +85,14 @@ func (nr *NamespaceRsc) add(no *corev1.Namespace) {
 	for k, v := range no.Annotations {
 		cg := CgroupParse(k, v)
 		if cg != nil {
-			klog.Infof("namespace %s, cgroup %v", no.Name, cg.Meta)
+			klog.Infof("namespace %s, cgroup %s", no.Name, cg.Meta)
 			res.cgmu.Lock()
 			res.cg[cg.Type] = cg
 			res.cgmu.Unlock()
 		}
 		rl := RlimitParse(k, v)
 		if rl != nil {
-			klog.Infof("namespace %s, rlimit %#v", no.Name, rl)
+			klog.Infof("namespace %s, rlimit %s", no.Name, rl)
 			res.rlmu.Lock()
 			res.rlimit[rl.Type] = rl
 			res.rlmu.Unlock()
