@@ -42,9 +42,6 @@ image:
 		echo "Image $${NAME##*/} build success" ; \
 	done
 
-.PHONY: img
-img:
-	docker buildx b -o type=docker,name=${REGISTER}/${GIT_REPO}/daemon:v0.0.1,push=true  --file Dockerfile ./
 
 .PHONY: lint-golang
 lint-golang:

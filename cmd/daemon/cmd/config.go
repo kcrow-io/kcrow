@@ -20,12 +20,6 @@ import (
 
 var controllerContext = new(ControllerContext)
 
-const (
-	SpiderPoolType string = "spiderpool"
-	CiliumPoolType string = "cilium"
-	CalicoPoolType string = "calico"
-)
-
 type envConf struct {
 	envName          string
 	defaultValue     string

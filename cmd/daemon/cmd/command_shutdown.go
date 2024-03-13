@@ -13,7 +13,7 @@ var shutdownCmd = &cobra.Command{
 	Use:   "shutdown",
 	Short: "shutdown " + binNameController,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO (Icarus9913)
+		// TODO
 		klog.Infof("Shutdown %s...", binNameController)
 	},
 }

@@ -1,19 +1,45 @@
 # kcrow
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/yylt/kcrow)](https://goreportcard.com/report/github.com/yylt/kcrow)
-[![CodeFactor](https://www.codefactor.io/repository/github/yylt/kcrow/badge)](https://www.codefactor.io/repository/github/yylt/kcrow)
-[![codecov](https://codecov.io/gh/yylt/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/yylt/kcrow)
+[![CodeFactor](https://www.codefactor.io/repository/github/kcrow-io/kcrow/badge)](https://www.codefactor.io/repository/github/kcrow-io/kcrow)
+[![codecov](https://codecov.io/gh/kcrow-io/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/kcrow-io/kcrow)
+
 
 [**English**](./README.md) | **简体中文**
 
 
-## 概述
+## 介绍
 
-该项目基于 NRI 接口开发，用于实现多租户资源控制，资源包括 ulimit、CPU 和内存 cgroup 设置，更多 NRI 参考[这里](https://github.com/containerd/nri)
+kcrow 主要是完成多租户的资源管理，以及设备和运行时相关初始化功能。当前已有的能力如下
 
-支持通过对节点和命名空间上添加注解完成配置
+- 支持控制 ulimit 和 cpu/memory cgroup 资源
 
-当前注解的配置优先级是 **pod > node > namespace**
+- 支持配置资源注解在命名空间，节点和容器多个级别上
+
+- 支持优先级，当前资源设置优先级为 pod > 节点 > 命名空间
+
+
+## Roadmap
+
+| 功能                              | 状态  |
+|----------------------------------|----------|
+| Multi-tenant                  | Alpha    |
+| Cpu cgroup                    | Alpha    |
+| Memory cgroup                    | Alpha     |
+| ulimit                    | Alpha     |
+| NPU/GPU runtime                    | In-plan     |
+| NPU/GPU topology                    | In-plan     |
+
+关于详细功能的规划，具体可参考 [roadmap](./docs/develop/roadmap-zh.md)。
+
+
+## 应用场景
+
+- 多租户计算资源隔离，通过 cgroup 或 ulimit 方式控制
+
+- 中间件、数据存储、日志观测、AI 训练等网络 I/O 密集性应用，支持自定义 ulimit 配额
+
+- AI 基础平台提升 NPU/GPU 调度和运行能力
 
 ## 快速开始
 
@@ -60,6 +86,7 @@ metadata:
     nofile.rlimit.kcrow.io: '{"hard":65535,"soft":65535}'
     cpu.cgroup.kcrow.io: '{"cpus":"0-2"}'
 ```
+
 
 ## 贡献
 

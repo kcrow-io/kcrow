@@ -1,17 +1,45 @@
 # kcrow
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/yylt/kcrow)](https://goreportcard.com/report/github.com/yylt/kcrow)
-[![CodeFactor](https://www.codefactor.io/repository/github/yylt/kcrow/badge)](https://www.codefactor.io/repository/github/yylt/kcrowl)
-[![codecov](https://codecov.io/gh/yylt/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/yylt/kcrow)
+[![CodeFactor](https://www.codefactor.io/repository/github/kcrow-io/kcrow/badge)](https://www.codefactor.io/repository/github/kcrow-io/kcrow)
+[![codecov](https://codecov.io/gh/kcrow-io/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/kcrow-io/kcrow)
 
 **English** | [**简体中文**](./README-zh.md)
 
 ## Overview
-This project is developed based on the NRI interface and is used to implement multi-tenant resource control. The resources include ulimits, CPU, and memory cgroup settings, more detail about [nri](https://github.com/containerd/nri).
 
-Kcrow supports adding annotations to pod, node and namespaces to complete the configuration. 
+kcrow is primarily responsible for multi-tenant resource management, as well as device and runtime-related initialization functions. The current capabilities are as follows:
 
-The annotation configuration priorities are **pod > node > namespace**.
+- Support for controlling ulimit and cpu/memory cgroup resources
+
+- Support for configuring resource annotations at multiple levels, including namespace, node, and container
+
+- Support for priority, with the current resource setting priority being pod > node > namespace
+
+
+
+## Roadmap
+
+| Feature                              | Status  |
+|----------------------------------|----------|
+| Multi-tenant                  | Alpha    |
+| Cpu cgroup                    | Alpha    |
+| Memory cgroup                    | Alpha     |
+| Ulimit                    | Alpha     |
+| NPU/GPU runtime                    | In-plan     |
+| NPU/GPU topology                    | In-plan     |
+
+Regarding the detailed functional planning, you can refer to the following: [roadmap](./docs/develop/roadmap.md)。
+
+
+## Scenarios:
+
+- Multi-tenant compute resource isolation, controlled through cgroup or ulimit methods
+
+- Network I/O intensive applications like middleware, data storage, log observability, AI training, etc., supporting customized ulimit quotas
+
+- Enhancing scheduling and runtime capabilities for NPU/GPU in AI base platforms
+
 
 ## Quick Start
 
