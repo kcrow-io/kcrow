@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/containerd/nri/pkg/api"
 	"github.com/containerd/nri/pkg/stub"
-	"github.com/yylt/kcrow/pkg/resource"
-	"github.com/yylt/kcrow/pkg/util"
+	"github.com/kcrow-io/kcrow/pkg/oci"
+	"github.com/kcrow-io/kcrow/pkg/util"
 	"k8s.io/klog/v2"
 )
 
@@ -16,25 +17,31 @@ const (
 )
 
 type Hub struct {
-	rc  *resource.ResManage
+	rcs []oci.Oci
 	ctx context.Context
 }
 
-func New(rc *resource.ResManage, ctx context.Context) (*Hub, error) {
-	_, err := newStub(rc)
+func New(ctx context.Context, ocis ...oci.Oci) (*Hub, error) {
+
+	hub := &Hub{
+		ctx: ctx,
+	}
+	_, err := newStub(hub)
 	if err != nil {
 		return nil, err
 	}
-	return &Hub{
-		rc:  rc,
-		ctx: ctx,
-	}, nil
+
+	for _, oc := range ocis {
+		klog.Infof("add resource controller %v", oc.Name())
+		hub.rcs = append(hub.rcs, oc)
+	}
+	return hub, nil
 }
 
 func (h *Hub) Start() {
 	go func() {
 		util.TimeBackoff(func() error { //nolint
-			st, err := newStub(h.rc)
+			st, err := newStub(h)
 			if err != nil {
 				klog.Errorf("init stub failed: %v", err)
 				return err
@@ -45,12 +52,35 @@ func (h *Hub) Start() {
 				klog.Warning("context cancle, server exit.")
 				return nil
 			default:
-				klog.Warningf("server exit: %v", err)
 				st.Stop()
 				return fmt.Errorf("server exist, errmsg: %v", err)
 			}
 		}, 0)
 	}()
+}
+
+func (h *Hub) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
+	adjust := &api.ContainerAdjustment{
+		Linux: &api.LinuxContainerAdjustment{
+			Resources: ct.Linux.Resources,
+		},
+	}
+	var (
+		err error
+		it  = &oci.Item{
+			Adjust: adjust,
+			Ct:     ct,
+			Sb:     p,
+		}
+	)
+
+	for _, rc := range h.rcs {
+		err := rc.Process(ctx, it)
+		if err != nil {
+			klog.Warningf("controller %s process failed: %v", rc.Name(), err)
+		}
+	}
+	return adjust, nil, err
 }
 
 func newStub(rc any) (stub.Stub, error) {

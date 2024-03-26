@@ -29,7 +29,7 @@ CONTAINER_ENGINE?=docker
 
 #----------build-image--------
 REGISTER ?= ghcr.io
-GIT_REPO ?= yylt/kcrow
+GIT_REPO ?= kcrow-io/kcrow
 CONTROLLER_IMAGE_NAME := ${REGISTER}/${GIT_REPO}/daemon
 IMAGES := ${CONTROLLER_IMAGE_NAME}
 

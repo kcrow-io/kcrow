@@ -1,6 +1,6 @@
 # kcrow
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/yylt/kcrow)](https://goreportcard.com/report/github.com/yylt/kcrow)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kcrow-io/kcrow)](https://goreportcard.com/report/github.com/kcrow-io/kcrow)
 [![CodeFactor](https://www.codefactor.io/repository/github/kcrow-io/kcrow/badge)](https://www.codefactor.io/repository/github/kcrow-io/kcrow)
 [![codecov](https://codecov.io/gh/kcrow-io/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/kcrow-io/kcrow)
 
@@ -61,7 +61,7 @@ Regarding the detailed functional planning, you can refer to the following: [roa
 ### install
 
 ```bash
-git clone https://github.com/yylt/kcrow/
+git clone https://github.com/kcrow-io/kcrow/
 helm install charts/kcrowdaemon kcrow -n kcrow  --create-namespace
 ```
 

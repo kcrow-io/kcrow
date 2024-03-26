@@ -55,7 +55,7 @@ controller:
     registry: ghcr.io
 
     ## @param controller.image.repository the image repository of controller
-    repository: yylt/kcrow-controller
+    repository: kcrow-io/kcrow-controller
 
     ## @param controller.image.pullPolicy the image pullPolicy of controller
     pullPolicy: IfNotPresent

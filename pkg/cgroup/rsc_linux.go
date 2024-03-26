@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package resource
+package cgroup
 
 import "github.com/containerd/nri/pkg/api"
 

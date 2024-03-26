@@ -4,7 +4,7 @@
 package main
 
 import (
-	"github.com/yylt/kcrow/cmd/daemon/cmd"
+	"github.com/kcrow-io/kcrow/cmd/daemon/cmd"
 )
 
 func main() {

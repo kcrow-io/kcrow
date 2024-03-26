@@ -1,6 +1,6 @@
 # kcrow
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/yylt/kcrow)](https://goreportcard.com/report/github.com/yylt/kcrow)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kcrow-io/kcrow)](https://goreportcard.com/report/github.com/kcrow-io/kcrow)
 [![CodeFactor](https://www.codefactor.io/repository/github/kcrow-io/kcrow/badge)](https://www.codefactor.io/repository/github/kcrow-io/kcrow)
 [![codecov](https://codecov.io/gh/kcrow-io/kcrow/branch/main/graph/badge.svg?token=YKXY2E4Q8G)](https://codecov.io/gh/kcrow-io/kcrow)
 
@@ -26,7 +26,7 @@ kcrow 主要是完成多租户的资源管理，以及设备和运行时相关�
 | Multi-tenant                  | Alpha    |
 | Cpu cgroup                    | Alpha    |
 | Memory cgroup                    | Alpha     |
-| ulimit                    | Alpha     |
+| Ulimit                    | Alpha     |
 | NPU/GPU runtime                    | In-plan     |
 | NPU/GPU topology                    | In-plan     |
 
@@ -61,7 +61,7 @@ kcrow 主要是完成多租户的资源管理，以及设备和运行时相关�
 ### 安装
 
 ```bash
-git clone https://github.com/yylt/kcrow/
+git clone https://github.com/kcrow-io/kcrow/
 helm install charts/kcrowdaemon kcrow -n kcrow  --create-namespace
 ```
 

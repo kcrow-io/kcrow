@@ -4,15 +4,15 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/go-logr/logr"
+	"github.com/kcrow-io/kcrow/pkg/k8s"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -31,6 +31,14 @@ func newCRDManager(cfg *Config) (cluster.Cluster, error) {
 
 	cacheopt := cache.Options{
 		Scheme: scheme,
+		ByObject: map[client.Object]cache.ByObject{
+			&corev1.Node{}: {
+				Transform: k8s.TransNode,
+			},
+			&corev1.Pod{}: {
+				Transform: k8s.TransPod,
+			},
+		},
 	}
 
 	clus, err := cluster.New(config, func(o *cluster.Options) {
@@ -44,16 +52,4 @@ func newCRDManager(cfg *Config) (cluster.Cluster, error) {
 	}
 
 	return clus, nil
-}
-
-func TransNode(in interface{}) (out interface{}, err error) {
-	v, ok := in.(*corev1.Node)
-	if ok {
-		return &corev1.Node{
-			TypeMeta:   v.TypeMeta,
-			ObjectMeta: v.ObjectMeta,
-			Spec:       *v.Spec.DeepCopy(),
-		}, nil
-	}
-	return nil, fmt.Errorf("it is not node type")
 }

@@ -1,4 +1,4 @@
-package resource
+package cgroup
 
 import (
 	"testing"
@@ -65,10 +65,9 @@ func TestCgroupMerge(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CgroupMerge(tt.src, tt.dst, tt.override); (err != nil) != tt.wantErr {
+			if err := cgroupMerge(tt.src, tt.dst, tt.override); (err != nil) != tt.wantErr {
 				t.Errorf("CgroupMerge() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
 		})
 	}
 }

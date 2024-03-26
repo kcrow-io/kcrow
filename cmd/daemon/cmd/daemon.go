@@ -12,9 +12,11 @@ import (
 
 	"github.com/google/gops/agent"
 	"github.com/grafana/pyroscope-go"
-	"github.com/yylt/kcrow/pkg"
-	"github.com/yylt/kcrow/pkg/resource"
-	"github.com/yylt/kcrow/pkg/util"
+	"github.com/kcrow-io/kcrow/pkg"
+	"github.com/kcrow-io/kcrow/pkg/cgroup"
+	"github.com/kcrow-io/kcrow/pkg/k8s"
+	"github.com/kcrow-io/kcrow/pkg/ulimit"
+	"github.com/kcrow-io/kcrow/pkg/util"
 
 	"k8s.io/klog/v2"
 )
@@ -95,11 +97,11 @@ func DaemonMain() {
 		util.TimeBackoff(func() error { // nolint
 			err = mgr.Start(controllerContext.InnerCtx)
 			if err != nil {
-				klog.Errorf("cluster controller start failed:%v", err)
+				klog.Errorf("kcrow controller start failed:%v", err)
 			}
 			select {
 			case <-controllerContext.InnerCtx.Done():
-				klog.Warning("cluster exit.")
+				klog.Warning("kcrow controller exit.")
 				return nil
 			default:
 				return err
@@ -127,12 +129,15 @@ func WatchSignal(sigCh chan os.Signal) {
 }
 
 func initControllerServiceManagers(ctrlctx *ControllerContext) {
-	node := resource.NewNodeControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
-	namespace := resource.NewNsControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
+	noc := k8s.NewNodeControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
+	nsc := k8s.NewNsControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
+	pom := k8s.NewPodControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
 
-	rsc := resource.New(ctrlctx.InnerCtx, namespace, node, ctrlctx.CRDCluster.GetClient())
+	coci := cgroup.CgroupManager(noc, nsc, pom)
+	roci := ulimit.RlimitManager(noc, nsc, pom)
 
-	hub, err := pkg.New(rsc, ctrlctx.InnerCtx)
+	hub, err := pkg.New(ctrlctx.InnerCtx, coci, roci)
+
 	if err != nil {
 		panic(err)
 	}

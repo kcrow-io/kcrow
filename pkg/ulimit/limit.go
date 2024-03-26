@@ -1,4 +1,4 @@
-package resource
+package ulimit
 
 import (
 	"encoding/json"
@@ -7,20 +7,20 @@ import (
 	"strings"
 
 	"github.com/containerd/nri/pkg/api"
-	"github.com/yylt/kcrow/pkg/util"
+	"github.com/kcrow-io/kcrow/pkg/util"
 	"k8s.io/klog/v2"
 )
 
 // ref: https://github.com/opencontainers/runtime-spec/blob/main/config.md#posix-process
 
-type Rlimit struct {
+type rlimit struct {
 	Type string  `json:"-"`
 	Hard *uint64 `json:"hard,omitempty"`
 	Soft *uint64 `json:"soft,omitempty"`
 }
 
 const (
-	RlimtSuffix = ".rlimit.kcrow.io"
+	rlimtSuffix = ".rlimit.kcrow.io"
 )
 
 var (
@@ -44,7 +44,7 @@ var (
 	}
 )
 
-func (r *Rlimit) Merge(dst *Rlimit, override bool) {
+func (r *rlimit) Merge(dst *rlimit, override bool) {
 	if dst == nil {
 		return
 	}
@@ -63,7 +63,7 @@ func (r *Rlimit) Merge(dst *Rlimit, override bool) {
 		}
 	}
 }
-func (r *Rlimit) String() string {
+func (r *rlimit) String() string {
 	if r == nil {
 		return ""
 	}
@@ -79,7 +79,7 @@ func (r *Rlimit) String() string {
 	return buf.String()
 }
 
-func (r *Rlimit) To() *api.POSIXRlimit {
+func (r *rlimit) To() *api.POSIXRlimit {
 	var (
 		ret = &api.POSIXRlimit{
 			Type: "RLIMIT_" + r.Type,
@@ -106,17 +106,17 @@ func (r *Rlimit) To() *api.POSIXRlimit {
 	return ret
 }
 
-func RlimitParse(key, value string) *Rlimit {
+func rlimitParse(key, value string) *rlimit {
 	var (
 		idx int
 		ok  bool
 	)
-	if idx = strings.Index(key, RlimtSuffix); idx < 0 {
+	if idx = strings.Index(key, rlimtSuffix); idx < 0 {
 		return nil
 	}
 	// TODO select container.
 	kind := key[:idx]
-	ret := &Rlimit{}
+	ret := &rlimit{}
 	lk := strings.ToUpper(kind)
 	_, ok = rlimitNames[lk]
 	if !ok {
@@ -138,7 +138,7 @@ func RlimitParse(key, value string) *Rlimit {
 	return ret
 }
 
-func resolvRlimit(value string, r *Rlimit) error {
+func resolvRlimit(value string, r *rlimit) error {
 	num, err := strconv.ParseUint(value, 10, 64)
 	if err == nil {
 		r.Hard = &num
@@ -148,7 +148,7 @@ func resolvRlimit(value string, r *Rlimit) error {
 	return json.Unmarshal([]byte(value), r)
 }
 
-func validRlimit(r *Rlimit) error {
+func validRlimit(r *rlimit) error {
 	if r == nil {
 		return fmt.Errorf("rlimit is null")
 	}

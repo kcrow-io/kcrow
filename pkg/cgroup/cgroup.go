@@ -1,4 +1,4 @@
-package resource
+package cgroup
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 // ref: https://github.com/opencontainers/runtime-spec/blob/main/config-linux.md#control-groups
 const (
-	CgroupSuffix = ".cgroup.kcrow.io"
+	cgroupSuffix = ".cgroup.kcrow.io"
 )
 
 var (
@@ -22,13 +22,13 @@ var (
 	}
 )
 
-type Cgroup struct {
+type cgroup struct {
 	Type string
 	Meta any
 }
 
 // reture type: *LinuxMemory, *LinuxCPU or nil.
-func (c *Cgroup) To() any {
+func (c *cgroup) To() any {
 	typev, ok := cgnames[c.Type]
 	if !ok {
 		return nil
@@ -39,7 +39,7 @@ func (c *Cgroup) To() any {
 	return c.Meta
 }
 
-func (c *Cgroup) String() string {
+func (c *cgroup) String() string {
 	if c == nil {
 		return ""
 	}
@@ -53,11 +53,11 @@ func (c *Cgroup) String() string {
 	}
 }
 
-func CgroupParse(key, value string) *Cgroup {
+func cgroupParse(key, value string) *cgroup {
 	var (
 		idx int
 	)
-	if idx = strings.Index(key, CgroupSuffix); idx < 0 {
+	if idx = strings.Index(key, cgroupSuffix); idx < 0 {
 		return nil
 	}
 
@@ -76,13 +76,13 @@ func CgroupParse(key, value string) *Cgroup {
 		return nil
 	}
 
-	return &Cgroup{
+	return &cgroup{
 		Type: kind,
 		Meta: ptrvalue,
 	}
 }
 
-func CgroupMerge(src, dst any, override bool) error {
+func cgroupMerge(src, dst any, override bool) error {
 	srct := reflect.TypeOf(src)
 	if srct != reflect.TypeOf(dst) && src != nil {
 		return fmt.Errorf("type is not equal or is null")
