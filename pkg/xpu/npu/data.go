@@ -54,10 +54,6 @@ const (
 	ascendVisibleDevices = "ASCEND_VISIBLE_DEVICES"
 	ascend               = "Ascend"
 	ascendRuntimeOptions = "ASCEND_RUNTIME_OPTIONS"
-
-	// ENV for device-plugin to identify ascend-docker-runtime
-	useAscendDocker = "ASCEND_DOCKER_RUNTIME=True"
-	devicePlugin    = "ascend-device-plugin"
 )
 
 // getDeviceTypeByChipName get device type by chipName

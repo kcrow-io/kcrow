@@ -16,7 +16,7 @@ kcrow is primarily responsible for multi-tenant resource management, as well as 
 
 - Support for priority, with the current resource setting priority being pod > node > namespace
 
-
+When encountering questions about whether to configure and how to configure information regarding cgroup and ulimit, you can refer to [cgroup](./docs/cgroup.md) and [ulimit](./docs/ulimit.md) link, and more examples will be provided later for explanation.
 
 ## Roadmap
 
