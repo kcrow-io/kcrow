@@ -29,3 +29,8 @@ type NamespaceRegister interface {
 	Register
 	NamespaceUpdate(*NsItem)
 }
+
+type RuntimeRegister interface {
+	Register
+	RuntimeUpdate(*RuntimeItem)
+}

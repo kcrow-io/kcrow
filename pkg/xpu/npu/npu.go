@@ -2,13 +2,16 @@ package npu
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containerd/nri/pkg/api"
+	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/oci"
 	"github.com/kcrow-io/kcrow/pkg/util"
 	"github.com/kcrow-io/kcrow/pkg/xpu/npu/dcmi"
@@ -17,17 +20,56 @@ import (
 
 var (
 	assendRe = regexp.MustCompile(`^Ascend(910|310|310B|310P)-(\d+)$`)
+
+	name          = "ascendnpu"
+	annotationKey = "ascend.npu.kcrow.io"
 )
 
-type Npu struct {
+type npuPath struct {
+	HookPath    string `json:"hookpath" yaml:"hookpath"`
+	DestoryPath string `json:"destorypath" yaml:"destorypath"`
 }
 
-func NewNpu() oci.Oci {
-	return &Npu{}
+type Npu struct {
+	rmctl *k8s.RuntimeManage
+	// runtime - value
+	runtime map[string]*npuPath
+
+	mu sync.RWMutex
+}
+
+func NewNpu(rm *k8s.RuntimeManage) *Npu {
+	npu := &Npu{
+		runtime: map[string]*npuPath{},
+		rmctl:   rm,
+	}
+	rm.Registe(npu)
+	return npu
 }
 
 func (n *Npu) Name() string {
-	return "npu"
+	return name
+}
+
+func (n *Npu) RuntimeUpdate(ri *k8s.RuntimeItem) {
+	if ri == nil {
+		return
+	}
+	var p = &npuPath{}
+
+	for k, v := range ri.No.Annotations {
+		if strings.ToLower(k) == annotationKey {
+			err := json.Unmarshal([]byte(v), p)
+			if err != nil {
+				klog.Warningf("unmarshal runtime %s annotation %s failed: %v", ri.No.Name, annotationKey, err)
+			} else {
+				n.mu.Lock()
+				n.runtime[ri.No.Name] = p
+				n.mu.Unlock()
+				return
+			}
+		}
+	}
 }
 
 func (n *Npu) Process(ctx context.Context, im *oci.Item) error {
@@ -44,6 +86,8 @@ func (n *Npu) Process(ctx context.Context, im *oci.Item) error {
 		klog.V(2).Infof("no env %s found", ascendVisibleDevices)
 		return nil
 	}
+	// TODO support more runtime
+	klog.Infof("process %s device, in vm runtime: %v", name, n.rmctl.Isvm(im.Sb.RuntimeHandler))
 
 	devices, err := parseDevices(visibleDevices)
 	if err != nil {
@@ -189,7 +233,7 @@ func parseDevices(visibleDevices string) ([]int, error) {
 			}
 		}
 	}
-	sort.Slice(devices, func(i, j int) bool { return i < j })
+	sort.SliceStable(devices, func(i, j int) bool { return i < j })
 	return removeDuplication(devices), nil
 }
 
