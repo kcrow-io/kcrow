@@ -8,12 +8,13 @@ include Makefile.defs
 
 all: build-bin install-bin
 
-.PHONY: all build install
+.PHONY: all build install binaries
 
 CONTROLLER_BIN_SUBDIRS := cmd/daemon 
 
 SUBDIRS := $(CONTROLLER_BIN_SUBDIRS) 
 
+binaries: build-bin
 
 build-bin:
 	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i all; done

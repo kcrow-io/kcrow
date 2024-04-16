@@ -1,0 +1,56 @@
+name: CI
+on:
+  # When added to a merge queue.
+  # See https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue#triggering-merge-group-checks-with-github-actions
+  merge_group:
+  pull_request:
+    branches: ['main', 'release/**']
+
+permissions: # added using https://github.com/step-security/secure-workflows
+  contents: read
+
+jobs:
+  #
+  # golangci-lint
+  #
+  linters:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      pull-requests: read # for golangci/golangci-lint-action to fetch pull requests
+    name: Linters
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-go
+      - uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.56.1
+          skip-cache: true
+          args: --timeout=8m
+
+  #
+  # Project checks
+  #
+  project:
+    name: Project Checks
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/github.com/kcrow-io/kcrow
+          fetch-depth: 100
+
+      - uses: ./src/github.com/kcrow-io/kcrow/.github/actions/install-go
+
+      - name: verify build
+        run: |
+          make binaries
+        working-directory: src/github.com/kcrow-io/kcrow
