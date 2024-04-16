@@ -33,6 +33,7 @@ type gpuPath struct {
 
 type Gpu struct {
 	rmctl *k8s.RuntimeManage
+
 	// runtime - value
 	runtime map[string]*gpuPath
 

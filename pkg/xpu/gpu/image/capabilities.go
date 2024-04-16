@@ -39,8 +39,8 @@ const (
 )
 
 var (
-	driverCapabilitiesNone = NewDriverCapabilities()
-	driverCapabilitiesAll  = NewDriverCapabilities("all")
+	driverCapabilitiesNone = NewDriverCapabilities()      // nolint
+	driverCapabilitiesAll  = NewDriverCapabilities("all") // nolint
 
 	// DefaultDriverCapabilities sets the value for driver capabilities if no value is set.
 	DefaultDriverCapabilities = NewDriverCapabilities("utility,compute")
