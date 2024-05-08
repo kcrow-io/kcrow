@@ -26,6 +26,7 @@ type NsManage struct {
 
 func NewNsControl(ctx context.Context, reader cache.Cache) *NsManage {
 	nr := &NsManage{
+		ctx:    ctx,
 		reader: reader,
 	}
 	err := nr.probe()

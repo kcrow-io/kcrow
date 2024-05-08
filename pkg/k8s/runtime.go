@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	nodev1 "k8s.io/api/node/v1"
@@ -11,8 +10,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
+type runtimeName string
+
 const (
-	vmAnnotationKey = "vm.kcrow.io"
+	vmAnnotationKey = "name.vm.kcrow.io"
+
+	kataName runtimeName = "kata"
 )
 
 type RuntimeItem struct {
@@ -27,13 +30,14 @@ type RuntimeManage struct {
 
 	proc []RuntimeRegister
 
-	mu        sync.RWMutex
-	vmruntime map[string]bool
+	mu       sync.RWMutex
+	runtimes map[string]runtimeName
 }
 
 func NewRuntimeManage(ctx context.Context, reader cache.Cache) *RuntimeManage {
 	rm := &RuntimeManage{
-		vmruntime: map[string]bool{},
+		ctx:      ctx,
+		runtimes: map[string]runtimeName{},
 	}
 	err := rm.probe(reader)
 	if err != nil {
@@ -74,66 +78,78 @@ func (rm *RuntimeManage) probe(reader cache.Cache) error {
 
 // regist process function, call when sync
 func (rm *RuntimeManage) Registe(fn RuntimeRegister) {
-	klog.Infof("regist runtime process %v", fn.Name())
+	klog.V(2).Infof("regist runtime process %v", fn.Name())
 	rm.proc = append(rm.proc, fn)
 }
 
-// regist process function, call when sync
+func (rm *RuntimeManage) IsKata(name string) bool {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+	return rm.runtimes[name] == kataName
+}
+
 func (rm *RuntimeManage) Isvm(name string) bool {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
-	return rm.vmruntime[name]
+	_, ok := rm.runtimes[name]
+	return ok
 }
 
 func (rm *RuntimeManage) OnAdd(obj interface{}, isInInitialList bool) {
-	rmobj, ok := obj.(*nodev1.RuntimeClass)
-	if !ok {
-		return
-	}
-	var isvm bool
-	for k := range rmobj.Annotations {
-		if strings.ToLower(k) == string(vmAnnotationKey) {
-			isvm = true
+	if rm.handler(obj, AddEvent) {
+		for _, p := range rm.proc {
+			p.RuntimeUpdate(&RuntimeItem{
+				Ev: AddEvent,
+				No: obj.(*nodev1.RuntimeClass),
+			})
 		}
 	}
-	for _, p := range rm.proc {
-		p.RuntimeUpdate(&RuntimeItem{
-			Ev: AddEvent,
-			No: obj.(*nodev1.RuntimeClass),
-		})
-	}
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-	rm.vmruntime[rmobj.Name] = isvm
 }
 
 func (rm *RuntimeManage) OnUpdate(oldObj, newObj interface{}) {
-	rmobj, ok := newObj.(*nodev1.RuntimeClass)
-	if !ok {
-		return
-	}
-	var isvm bool
-	for k := range rmobj.Annotations {
-		if strings.ToLower(k) == string(vmAnnotationKey) {
-			isvm = true
+	if rm.handler(newObj, UpdateEvent) {
+		for _, p := range rm.proc {
+			p.RuntimeUpdate(&RuntimeItem{
+				Ev: UpdateEvent,
+				No: newObj.(*nodev1.RuntimeClass),
+			})
 		}
 	}
-	for _, p := range rm.proc {
-		p.RuntimeUpdate(&RuntimeItem{
-			Ev: UpdateEvent,
-			No: newObj.(*nodev1.RuntimeClass),
-		})
-	}
-	rm.mu.Lock()
-	defer rm.mu.Unlock()
-	rm.vmruntime[rmobj.Name] = isvm
 }
 
 func (rm *RuntimeManage) OnDelete(obj interface{}) {
-	for _, p := range rm.proc {
-		p.RuntimeUpdate(&RuntimeItem{
-			Ev: DeleteEvent,
-			No: obj.(*nodev1.RuntimeClass),
-		})
+	if rm.handler(obj, DeleteEvent) {
+		for _, p := range rm.proc {
+			p.RuntimeUpdate(&RuntimeItem{
+				Ev: DeleteEvent,
+				No: obj.(*nodev1.RuntimeClass),
+			})
+		}
 	}
+}
+
+func (rm *RuntimeManage) handler(obj interface{}, ev Event) bool {
+	rmobj, ok := obj.(*nodev1.RuntimeClass)
+	if !ok {
+		klog.Errorf("obj is invalid type, not runtimeclass")
+		return false
+	}
+	if rmobj.Annotations != nil {
+		rm.mu.Lock()
+		defer rm.mu.Unlock()
+		if ev == DeleteEvent {
+			delete(rm.runtimes, rmobj.Name)
+			return true
+		}
+
+		v, ok := rmobj.Annotations[vmAnnotationKey]
+		if ok {
+			rm.runtimes[rmobj.Name] = ""
+		}
+		switch v {
+		case string(kataName):
+			rm.runtimes[rmobj.Name] = kataName
+		}
+	}
+	return true
 }

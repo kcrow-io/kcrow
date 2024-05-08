@@ -19,6 +19,7 @@ type PodManage struct {
 
 func NewPodControl(ctx context.Context, reader cache.Cache) *PodManage {
 	nr := &PodManage{
+		ctx:    ctx,
 		reader: reader,
 	}
 	return nr

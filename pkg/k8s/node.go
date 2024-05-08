@@ -29,6 +29,7 @@ type NodeManage struct {
 func NewNodeControl(ctx context.Context, reader cache.Cache) *NodeManage {
 	no := &NodeManage{
 		reader: reader,
+		ctx:    ctx,
 	}
 	err := no.probe()
 	if err != nil {
