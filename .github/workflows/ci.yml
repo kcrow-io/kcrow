@@ -28,11 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-go
-      - uses: golangci/golangci-lint-action@v4
-        with:
-          version: v1.56.1
-          skip-cache: true
-          args: --timeout=8m
+      - run: ./tools/scripts/install-golangci-lint
+      - run: |
+          make lint-golang  
 
   #
   # Project checks
@@ -54,3 +52,39 @@ jobs:
         run: |
           make binaries
         working-directory: src/github.com/kcrow-io/kcrow
+
+  #
+  # Integration on linux
+  #
+  integration-linux:
+    name: Linux Integration
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    needs: [project, linters]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/scripts/install-gotestsum
+      - run: tools/scripts/install-teststat
+      - uses: yylt/k3s-gha@master
+        with:
+          k3s_arguments: "--disable=servicelb,traefik,local-storage,metrics-server,runtimes --disable-helm-controller  --disable-cloud-controller --disable-network-policy"
+          containerd_toml_path: "./tests/config/containerd-1.x.toml"
+
+      - uses: ./.github/actions/install-go
+      - name: build and run
+        run: |
+          make binaries
+          (./bin/daemon daemon &)
+
+      - name: Tests
+        env:
+          GOTESTSUM_JUNITFILE: ${{github.workspace}}/test-unit-root-junit.xml
+          GOTESTSUM_JSONFILE: ${{github.workspace}}/test-unit-root-gotest.json
+        run: |
+          echo TODO

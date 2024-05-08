@@ -260,10 +260,15 @@ check_doc:
 
 
 # ==========================
+.PHONY: e2e
+e2e: vendor
+	-$(QUIET) echo "$(WHALE) $@"
+	-$(QUIET) cd "${ROOTDIR}/test/e2e" && $(GO_TEST) -test.root -parallel ${TESTFLAGS_PARALLEL} .
+
 
 .PHONY: clean_e2e
 clean_e2e:
-	-$(QUIET)  make -C test clean
+	-$(QUIET) make -C test clean
 	-$(QUIET) rm -f e2ereport.json
 
 .PHONY: clean
