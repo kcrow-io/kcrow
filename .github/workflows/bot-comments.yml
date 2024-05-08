@@ -1,0 +1,19 @@
+name: Auto ci on retest comments
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: # added using https://github.com/step-security/secure-workflows
+  contents: read
+
+jobs:
+  comments:
+    name: retest
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request != ''
+    steps:
+      - name: retest
+        if: |
+          contains(github.event.comment.body, '/retest')
+        uses: ./.github/workflows/ci.yml
