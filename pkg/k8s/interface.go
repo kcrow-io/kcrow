@@ -34,3 +34,8 @@ type RuntimeRegister interface {
 	Register
 	RuntimeUpdate(*RuntimeItem)
 }
+
+type VolumeRegister interface {
+	Register
+	VolumeUpdate(*VolumeItem)
+}

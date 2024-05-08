@@ -8,6 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
+
+	_ "github.com/kcrow-io/kcrow/pkg/plugins/vmvol"
 )
 
 // daemonCmd represents the daemon command

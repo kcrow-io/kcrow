@@ -17,6 +17,7 @@ import (
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/ulimit"
 	"github.com/kcrow-io/kcrow/pkg/util"
+	"github.com/kcrow-io/kcrow/pkg/vmvol"
 
 	"k8s.io/klog/v2"
 )
@@ -129,14 +130,20 @@ func WatchSignal(sigCh chan os.Signal) {
 }
 
 func initControllerServiceManagers(ctrlctx *ControllerContext) {
+	// init kubernetes resource
 	noc := k8s.NewNodeControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
 	nsc := k8s.NewNsControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
 	pom := k8s.NewPodControl(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
+	rmm := k8s.NewRuntimeManage(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
+	volm := k8s.NewVolumeManage(ctrlctx.InnerCtx, ctrlctx.CRDCluster.GetCache())
 
+	// init manager
 	coci := cgroup.CgroupManager(noc, nsc, pom)
 	roci := ulimit.RlimitManager(noc, nsc, pom)
+	voli := vmvol.New(ctrlctx.InnerCtx, volm, rmm, pom)
 
-	hub, err := pkg.New(ctrlctx.InnerCtx, coci, roci)
+	// registry manager
+	hub, err := pkg.New(ctrlctx.InnerCtx, coci, roci, voli)
 
 	if err != nil {
 		panic(err)
