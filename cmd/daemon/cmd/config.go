@@ -35,6 +35,9 @@ var envInfo = []envConf{
 	{"GIT_COMMIT_TIME", "", false, &controllerContext.Cfg.CommitTime, nil, nil},
 	{"VERSION", "", false, &controllerContext.Cfg.AppVersion, nil, nil},
 	{"GOLANG_ENV_MAXPROCS", "8", false, nil, nil, &controllerContext.Cfg.GoMaxProcs},
+
+	// environ also used in nri library
+	{"NRI_PLUGIN_SOCKET", "/var/run/nri/nri.sock", false, &controllerContext.Cfg.NriSockPath, nil, nil},
 }
 
 type Config struct {
@@ -42,6 +45,7 @@ type Config struct {
 	CommitTime    string
 	AppVersion    string
 	GoMaxProcs    int
+	NriSockPath   string
 
 	// flags
 	GopsListenPort   string
