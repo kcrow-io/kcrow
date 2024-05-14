@@ -25,7 +25,7 @@ type NodeManage struct {
 	proc []NodeRegister
 }
 
-// only record current node
+// only record local-node
 func NewNodeControl(ctx context.Context, reader cache.Cache) *NodeManage {
 	no := &NodeManage{
 		reader: reader,
@@ -108,11 +108,8 @@ func (no *NodeManage) OnDelete(obj interface{}) {
 func TransNode(in interface{}) (out interface{}, err error) {
 	v, ok := in.(*corev1.Node)
 	if ok {
-		return &corev1.Node{
-			TypeMeta:   v.TypeMeta,
-			ObjectMeta: v.ObjectMeta,
-			Spec:       *v.Spec.DeepCopy(),
-		}, nil
+		v.Status = corev1.NodeStatus{}
+		return v, nil
 	}
 	return nil, fmt.Errorf("it is not node type")
 }

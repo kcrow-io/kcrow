@@ -18,6 +18,9 @@ type PodManage struct {
 }
 
 func NewPodControl(ctx context.Context, reader cache.Cache) *PodManage {
+	if reader == nil {
+		panic(fmt.Errorf("reader cannot be nil"))
+	}
 	nr := &PodManage{
 		ctx:    ctx,
 		reader: reader,
@@ -26,9 +29,7 @@ func NewPodControl(ctx context.Context, reader cache.Cache) *PodManage {
 }
 
 func (nr *PodManage) Pod(nsname types.NamespacedName) (*corev1.Pod, error) {
-	var (
-		po = &corev1.Pod{}
-	)
+	po := &corev1.Pod{}
 	err := nr.reader.Get(nr.ctx, nsname, po)
 	if err != nil {
 		return nil, err
@@ -39,10 +40,9 @@ func (nr *PodManage) Pod(nsname types.NamespacedName) (*corev1.Pod, error) {
 func TransPod(in interface{}) (out interface{}, err error) {
 	v, ok := in.(*corev1.Pod)
 	if ok {
-		return &corev1.Pod{
-			TypeMeta:   v.TypeMeta,
-			ObjectMeta: v.ObjectMeta,
-		}, nil
+		v.ManagedFields = nil
+		v.Status = corev1.PodStatus{}
+		return v, nil
 	}
 	return nil, fmt.Errorf("not pod type")
 }
