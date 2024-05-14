@@ -78,10 +78,14 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	m.mu.RLock()
 	nscg := m.namespace[oci.GetNamespace(ct)]
 	m.mu.RUnlock()
-	fn(nscg)
+	if nscg != nil {
+		fn(nscg)
+	}
 
 	// node
-	fn(m.node)
+	if m.node != nil {
+		fn(m.node)
+	}
 
 	// pod
 	for k, v := range poannotation {

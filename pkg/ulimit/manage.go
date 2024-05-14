@@ -61,12 +61,16 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 
 	// namespace
 	m.mu.RLock()
-	nscg := m.namespace[oci.GetNamespace(ct)]
+	nsrlimit := m.namespace[oci.GetNamespace(ct)]
 	m.mu.RUnlock()
-	fn(nscg)
+	if nsrlimit != nil {
+		fn(nsrlimit)
+	}
 
 	// node
-	fn(m.node)
+	if m.node != nil {
+		fn(m.node)
+	}
 
 	// pod
 	for k, v := range poannotation {
