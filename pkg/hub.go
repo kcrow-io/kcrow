@@ -2,17 +2,19 @@ package pkg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containerd/nri/pkg/api"
 	"github.com/containerd/nri/pkg/stub"
+	merr "github.com/kcrow-io/kcrow/pkg/errors"
 	"github.com/kcrow-io/kcrow/pkg/oci"
 	"github.com/kcrow-io/kcrow/pkg/util"
 	"k8s.io/klog/v2"
 )
 
 const (
-	name  = "ResourceController"
+	name  = "HubController"
 	index = "05"
 )
 
@@ -25,10 +27,6 @@ func New(ctx context.Context, ocis ...oci.Oci) (*Hub, error) {
 
 	hub := &Hub{
 		ctx: ctx,
-	}
-	_, err := newStub(hub)
-	if err != nil {
-		return nil, err
 	}
 
 	for _, oc := range ocis {
@@ -77,7 +75,10 @@ func (h *Hub) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *api.Co
 	for _, rc := range h.rcs {
 		err := rc.Process(ctx, it)
 		if err != nil {
-			klog.Warningf("controller %s process failed: %v", rc.Name(), err)
+			klog.Warningf("controller %s failed: %v", rc.Name(), err)
+			if errors.Is(err, &merr.K8sError{}) || errors.Is(err, &merr.InternalError{}) {
+				err = nil
+			}
 		}
 	}
 	return adjust, nil, err

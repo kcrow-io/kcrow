@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/containerd/nri/pkg/api"
+	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -106,33 +108,48 @@ func (r *rlimit) To() *api.POSIXRlimit {
 	return ret
 }
 
-func rlimitParse(key, value string) *rlimit {
+func rlimitParse(po *corev1.Pod, cntname string) *rlimit {
 	var (
-		idx int
-		ok  bool
+		ok            bool
+		prefix, value string
 	)
-	if idx = strings.Index(key, rlimtSuffix); idx < 0 {
+	if po == nil || po.Annotations == nil {
 		return nil
 	}
-	// TODO select container.
-	kind := key[:idx]
+	for k, v := range po.Annotations {
+		prefix, ok = util.TrimSuffix(k, rlimtSuffix)
+		if ok {
+			value = v
+			break
+		}
+	}
+	kind, ok := k8s.TryParseContainer(po, cntname, prefix)
+	if !ok {
+		klog.V(2).Infof("skip container '%s' cgroup parse, not match", cntname)
+		return nil
+	}
+	return rlimitfromStr(kind, value)
+}
+
+func rlimitfromStr(kind, value string) *rlimit {
 	ret := &rlimit{}
 	lk := strings.ToUpper(kind)
-	_, ok = rlimitNames[lk]
+	_, ok := rlimitNames[lk]
 	if !ok {
-		klog.Errorf("not support rlimit kind: %v", kind)
+		klog.Warningf("not support rlimit kind: %v", kind)
 		return nil
 	}
+
 	ret.Type = lk
 	err := resolvRlimit(value, ret)
 	if err != nil {
-		klog.Errorf("parse rlimit %v faild: %v", ret.Type, err)
+		klog.Warningf("parse rlimit '%v' faild", value)
 		return nil
 	}
-	// must set one.
+
 	err = validRlimit(ret)
 	if err != nil {
-		klog.Errorf("rlimit %v invalid: %v", ret.Type, err)
+		klog.Warningf("rlimit %v is invalid: %v", ret.Type, err)
 		return nil
 	}
 	return ret
@@ -148,6 +165,7 @@ func resolvRlimit(value string, r *rlimit) error {
 	return json.Unmarshal([]byte(value), r)
 }
 
+// hard or soft must set one at least, and hard >= soft.
 func validRlimit(r *rlimit) error {
 	if r == nil {
 		return fmt.Errorf("rlimit is null")

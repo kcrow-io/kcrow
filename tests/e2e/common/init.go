@@ -7,7 +7,7 @@ var (
 )
 
 const (
-	DefaultKubeconfig = "/etc/kubeconfig/confit.yaml"
+	DefaultKubeconfig = "/etc/kubeconfig/config.yaml"
 )
 
 func init() {

@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/containerd/nri/pkg/api"
+	"github.com/kcrow-io/kcrow/pkg/k8s"
+	"github.com/kcrow-io/kcrow/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -53,17 +55,30 @@ func (c *cgroup) String() string {
 	}
 }
 
-func cgroupParse(key, value string) *cgroup {
+func cgroupParse(po *corev1.Pod, cntname string) *cgroup {
 	var (
-		idx int
+		prefix, value string
+		ok            bool
 	)
-	if idx = strings.Index(key, cgroupSuffix); idx < 0 {
+	if po == nil || po.Annotations == nil {
 		return nil
 	}
+	for k, v := range po.Annotations {
+		prefix, ok = util.TrimSuffix(k, cgroupSuffix)
+		if ok {
+			value = v
+			break
+		}
+	}
+	kind, ok := k8s.TryParseContainer(po, cntname, prefix)
+	if !ok {
+		klog.V(2).Infof("skip container '%s' cgroup parse, not match", cntname)
+		return nil
+	}
+	return cgroupfromStr(kind, value)
+}
 
-	// TODO support select container.
-	kind := strings.ToLower(key[:idx])
-
+func cgroupfromStr(kind, value string) *cgroup {
 	typev, ok := cgnames[kind]
 	if !ok {
 		klog.Errorf("not support cgroup kind: %v", kind)
@@ -98,6 +113,7 @@ func cgroupMerge(src, dst any, override bool) error {
 	return nil
 }
 
+// only merge cpuset, memset.
 func cpuMerge(src, dst *api.LinuxCPU, override bool) {
 	if src == nil || dst == nil {
 		return
@@ -111,20 +127,6 @@ func cpuMerge(src, dst *api.LinuxCPU, override bool) {
 	if src.Mems != "" {
 		if dst.Mems == "" || override {
 			dst.Mems = src.Mems
-		}
-	}
-	if src.Period != nil {
-		if dst.Period == nil || override {
-			dst.Period = &api.OptionalUInt64{
-				Value: src.Period.Value,
-			}
-		}
-	}
-	if src.Shares != nil {
-		if dst.Shares == nil || override {
-			dst.Shares = &api.OptionalUInt64{
-				Value: src.Shares.Value,
-			}
 		}
 	}
 	if src.Quota != nil {
@@ -145,20 +147,6 @@ func memoryMerge(src, dst *api.LinuxMemory, override bool) {
 		if dst.Reservation == nil || override {
 			dst.Reservation = &api.OptionalInt64{
 				Value: src.Reservation.Value,
-			}
-		}
-	}
-	if src.DisableOomKiller != nil {
-		if dst.DisableOomKiller == nil || override {
-			dst.DisableOomKiller = &api.OptionalBool{
-				Value: src.DisableOomKiller.Value,
-			}
-		}
-	}
-	if src.Limit != nil {
-		if dst.Limit == nil || override {
-			dst.Limit = &api.OptionalInt64{
-				Value: src.Limit.Value,
 			}
 		}
 	}

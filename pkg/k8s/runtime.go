@@ -10,14 +10,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
-type runtimeName string
-
-const (
-	vmAnnotationKey = "name.vm.kcrow.io"
-
-	kataName runtimeName = "kata"
-)
-
 type RuntimeItem struct {
 	Ev Event
 	No *nodev1.RuntimeClass
@@ -58,10 +50,7 @@ func (rm *RuntimeManage) probe(reader cache.Cache) error {
 	evHandler := toolscache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
 			_, ok := obj.(*nodev1.RuntimeClass)
-			if !ok {
-				return false
-			}
-			return false
+			return ok
 		},
 		Handler: rm,
 	}
@@ -78,14 +67,14 @@ func (rm *RuntimeManage) probe(reader cache.Cache) error {
 
 // regist process function, call when sync
 func (rm *RuntimeManage) Registe(fn RuntimeRegister) {
-	klog.V(2).Infof("regist runtime process %v", fn.Name())
+	klog.V(2).Infof("regist runtime callback %v", fn.Name())
 	rm.proc = append(rm.proc, fn)
 }
 
 func (rm *RuntimeManage) IsKata(name string) bool {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
-	return rm.runtimes[name] == kataName
+	return rm.runtimes[name] == kataRuntimeName
 }
 
 func (rm *RuntimeManage) Isvm(name string) bool {
@@ -142,13 +131,14 @@ func (rm *RuntimeManage) handler(obj interface{}, ev Event) bool {
 			return true
 		}
 
-		v, ok := rmobj.Annotations[vmAnnotationKey]
+		v, ok := rmobj.Annotations[nameRuntimeAnnotationKey]
 		if ok {
 			rm.runtimes[rmobj.Name] = ""
 		}
+		klog.V(2).Infof("runtimeclass '%s' annotation '%s' is '%s'", rmobj.GetName(), nameRuntimeAnnotationKey, v)
 		switch v {
-		case string(kataName):
-			rm.runtimes[rmobj.Name] = kataName
+		case string(kataRuntimeName):
+			rm.runtimes[rmobj.Name] = kataRuntimeName
 		}
 	}
 	return true

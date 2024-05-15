@@ -2,29 +2,33 @@ package cgroup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
 
 	"github.com/containerd/nri/pkg/api"
+	merr "github.com/kcrow-io/kcrow/pkg/errors"
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/oci"
+	"github.com/kcrow-io/kcrow/pkg/util"
 	"k8s.io/klog/v2"
 )
 
 type manager struct {
 	po *k8s.PodManage
 
-	node *cgroup
+	node *util.HashMap[string, *cgroup]
 
 	mu        sync.RWMutex
-	namespace map[string]*cgroup
+	namespace map[string]*util.HashMap[string, *cgroup]
 }
 
 func CgroupManager(no *k8s.NodeManage, ns *k8s.NsManage, po *k8s.PodManage) oci.Oci {
 	m := &manager{
 		po:        po,
-		namespace: map[string]*cgroup{},
+		node:      util.New[string, *cgroup](),
+		namespace: map[string]*util.HashMap[string, *cgroup]{},
 	}
 	no.Registe(m)
 	ns.Registe(m)
@@ -35,21 +39,26 @@ func (m *manager) Name() string {
 	return "cgroup"
 }
 
+// NOTICE. skip initContainer
 func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	if im == nil || im.Adjust == nil {
-		klog.Warningf("cgroup could not process nil data")
-		return fmt.Errorf("oci data must be set")
+		return errors.Join(fmt.Errorf("process %s, but data invalid", m.Name()), &merr.InternalError{})
 	}
 	po, err := m.po.Pod(oci.GetPodInfo(im.Ct))
 	if err != nil {
-		return err
+		return errors.Join(&merr.K8sError{}, err)
+	}
+	for _, cnt := range po.Spec.InitContainers {
+		if im.Ct.Name == cnt.Name {
+			klog.V(3).Infof("'%s' skip initcontainer '%s' for pod '%s/%s'", m.Name(), cnt.Name, po.GetNamespace(), po.GetName())
+			return nil
+		}
 	}
 
 	var (
-		cpuc         = &api.LinuxCPU{}
-		memc         = &api.LinuxMemory{}
-		ct           = im.Ct
-		poannotation = po.Annotations
+		cpuc = &api.LinuxCPU{}
+		memc = &api.LinuxMemory{}
+		ct   = im.Ct
 	)
 
 	if ct.Linux != nil && ct.Linux.Resources != nil {
@@ -79,57 +88,76 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	nscg := m.namespace[oci.GetNamespace(ct)]
 	m.mu.RUnlock()
 	if nscg != nil {
-		fn(nscg)
+		nscg.Iter(func(_ string, c *cgroup) bool {
+			fn(c)
+			return true
+		})
 	}
 
 	// node
-	if m.node != nil {
-		fn(m.node)
-	}
+	m.node.Iter(func(_ string, c *cgroup) bool {
+		fn(c)
+		return true
+	})
 
 	// pod
-	for k, v := range poannotation {
-		cp := cgroupParse(k, v)
-		if cp == nil {
-			continue
-		}
-		fn(cp)
+	cg := cgroupParse(po, ct.Name)
+	if cg != nil {
+		fn(cg)
 	}
+
 	ct.Linux.Resources.Cpu = cpuc
 	ct.Linux.Resources.Memory = memc
 	return nil
 }
 
+// only support [kind].[suffix]
 func (m *manager) NodeUpdate(ni *k8s.NodeItem) {
 	switch ni.Ev {
 	case k8s.AddEvent, k8s.UpdateEvent:
 	default:
 		return
 	}
-	n := ni.No
-	for k, v := range n.Annotations {
-		cg := cgroupParse(k, v)
+	node := ni.No
+
+	for k, v := range node.Annotations {
+		prefix, ok := util.TrimSuffix(k, cgroupSuffix)
+		if !ok {
+			continue
+		}
+		cg := cgroupfromStr(prefix, v)
 		if cg != nil {
-			klog.Infof("node %s, update cgroup %s", n.Name, cg)
-			m.node = cg
+			m.node.Put(prefix, cg)
+			klog.V(3).Infof("node %s, update cgroup %s", node.Name, cg)
 		}
 	}
 }
 
+// only support [kind].[suffix]
 func (m *manager) NamespaceUpdate(ni *k8s.NsItem) {
 	switch ni.Ev {
 	case k8s.AddEvent, k8s.UpdateEvent:
 	default:
 		return
 	}
-	n := ni.Ns
-	for k, v := range n.Annotations {
-		cg := cgroupParse(k, v)
+	ns := ni.Ns
+
+	for k, v := range ns.Annotations {
+		prefix, ok := util.TrimSuffix(k, cgroupSuffix)
+		if !ok {
+			continue
+		}
+		cg := cgroupfromStr(prefix, v)
 		if cg != nil {
 			m.mu.Lock()
-			klog.Infof("namespace %s, update cgroup %s", n.Name, cg)
-			m.namespace[n.Name] = cg
+			v, ok := m.namespace[ns.GetName()]
+			if !ok {
+				m.namespace[ns.GetName()] = util.New[string, *cgroup]()
+				v = m.namespace[ns.GetName()]
+			}
+			v.Put(prefix, cg)
 			m.mu.Unlock()
+			klog.V(3).Infof("namespace %s, update cgroup %s", ns.Name, cg)
 		}
 	}
 }

@@ -38,7 +38,6 @@ func NewNodeControl(ctx context.Context, reader cache.Cache) *NodeManage {
 	return no
 }
 
-// priority
 func (no *NodeManage) probe() error {
 	var (
 		ns = &corev1.Namespace{}
@@ -46,6 +45,9 @@ func (no *NodeManage) probe() error {
 	informer, err := no.reader.GetInformer(no.ctx, ns)
 	if err != nil {
 		return err
+	}
+	if nodeName == "" {
+		klog.Warningf("recommand set environment '%s', otherwise node controller not work", nodeNameEnv)
 	}
 	evHandler := toolscache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
@@ -73,7 +75,7 @@ func (no *NodeManage) probe() error {
 }
 
 func (no *NodeManage) Registe(fn NodeRegister) {
-	klog.Infof("regist node process %v", fn.Name())
+	klog.Infof("regist node callback %v", fn.Name())
 	no.proc = append(no.proc, fn)
 }
 
@@ -108,6 +110,7 @@ func (no *NodeManage) OnDelete(obj interface{}) {
 func TransNode(in interface{}) (out interface{}, err error) {
 	v, ok := in.(*corev1.Node)
 	if ok {
+		v.ManagedFields = nil
 		v.Status = corev1.NodeStatus{}
 		return v, nil
 	}
