@@ -65,7 +65,7 @@ func (nr *NsManage) probe() error {
 
 // regist process function, call when sync
 func (no *NsManage) Registe(fn NamespaceRegister) {
-	klog.Infof("regist namespace process %v", fn.Name())
+	klog.Infof("regist namespace callback %v", fn.Name())
 	no.proc = append(no.proc, fn)
 }
 

@@ -23,7 +23,7 @@ type VolumeManage struct {
 
 	mu sync.RWMutex
 
-	// namespace/name (pvc)
+	// namespace/name (pv)
 	specs map[string]*corev1.PersistentVolume
 
 	proc []VolumeRegister
@@ -52,10 +52,7 @@ func (vm *VolumeManage) probe(reader cache.Cache) error {
 	evHandler := toolscache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
 			_, ok := obj.(*corev1.PersistentVolume)
-			if !ok {
-				return false
-			}
-			return false
+			return ok
 		},
 		Handler: vm,
 	}
@@ -72,7 +69,7 @@ func (vm *VolumeManage) probe(reader cache.Cache) error {
 
 // regist process function, call when sync
 func (vm *VolumeManage) Registe(fn VolumeRegister) {
-	klog.V(2).Infof("regist storageclass process %v", fn.Name())
+	klog.V(2).Infof("regist persistent volume callback %v", fn.Name())
 	vm.proc = append(vm.proc, fn)
 }
 

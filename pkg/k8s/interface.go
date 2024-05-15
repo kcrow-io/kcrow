@@ -4,8 +4,14 @@ import (
 	"os"
 )
 
+const (
+	nodeNameEnv = "NODE_NAME"
+
+	nameRuntimeAnnotationKey = "name.vm.kcrow.io"
+)
+
 var (
-	nodeName = os.Getenv("NODE_NAME")
+	nodeName = os.Getenv(nodeNameEnv)
 )
 
 type Event int
@@ -14,6 +20,12 @@ const (
 	AddEvent = iota
 	UpdateEvent
 	DeleteEvent
+)
+
+type runtimeName string
+
+const (
+	kataRuntimeName runtimeName = "kata"
 )
 
 type Register interface {
