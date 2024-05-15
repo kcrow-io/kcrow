@@ -22,9 +22,11 @@ func NewPodControl(ctx context.Context, reader cache.Cache) *PodManage {
 	if reader == nil {
 		panic(fmt.Errorf("reader cannot be nil"))
 	}
+
 	if nodeName == "" {
 		klog.Warningf("recommand set environment '%s', otherwise all pod will cache.", nodeNameEnv)
 	}
+
 	nr := &PodManage{
 		ctx:    ctx,
 		reader: reader,
