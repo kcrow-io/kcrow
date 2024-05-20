@@ -37,7 +37,7 @@ var envInfo = []envConf{
 	{"GOLANG_ENV_MAXPROCS", "8", false, nil, nil, &controllerContext.Cfg.GoMaxProcs},
 
 	// environ also used in nri library
-	{"NRI_PLUGIN_SOCKET", "/var/run/nri/nri.sock", false, &controllerContext.Cfg.NriSockPath, nil, nil},
+	{"KCROW_NRIPLUGIN_SOCKET", "/var/run/nri/nri.sock", false, &controllerContext.Cfg.NriSockPath, nil, nil},
 }
 
 type Config struct {

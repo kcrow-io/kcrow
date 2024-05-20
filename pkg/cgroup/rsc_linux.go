@@ -3,44 +3,20 @@
 
 package cgroup
 
-import "github.com/containerd/nri/pkg/api"
+import (
+	"fmt"
+
+	"github.com/containerd/nri/pkg/api"
+	"github.com/kcrow-io/kcrow/pkg/util"
+)
 
 // Must judge the upper level's content before  modified .
-type CpuCgroup struct {
-	Shares *uint64 `json:"shares,omitempty"`
-	Quota  *int64  `json:"quota,omitempty"`
-	Period *uint64 `json:"period,omitempty"`
-	Cpus   string  `json:"cpus,omitempty"`
-	Mems   string  `json:"mems,omitempty"`
+type cpuCgroup struct {
+	Cpus string `json:"cpus,omitempty"`
+	Mems string `json:"mems,omitempty"`
 }
 
-func (cc *CpuCgroup) To() *api.LinuxCPU {
-	linuxc := &api.LinuxCPU{}
-	if cc.Cpus != "" {
-		linuxc.Cpus = cc.Cpus
-	}
-	if cc.Mems != "" {
-		linuxc.Mems = cc.Mems
-	}
-	if cc.Period != nil {
-		linuxc.Period = &api.OptionalUInt64{
-			Value: *cc.Period,
-		}
-	}
-	if cc.Shares != nil {
-		linuxc.Shares = &api.OptionalUInt64{
-			Value: *cc.Shares,
-		}
-	}
-	if cc.Quota != nil {
-		linuxc.Quota = &api.OptionalInt64{
-			Value: *cc.Quota,
-		}
-	}
-	return linuxc
-}
-
-func (cc *CpuCgroup) MergeTo(dst *api.LinuxCPU, override bool) {
+func (cc *cpuCgroup) MergeTo(dst *cpuCgroup, override bool) {
 	if dst == nil {
 		return
 	}
@@ -54,33 +30,37 @@ func (cc *CpuCgroup) MergeTo(dst *api.LinuxCPU, override bool) {
 			dst.Mems = cc.Mems
 		}
 	}
-	if cc.Period != nil {
-		if dst.Period == nil || override {
-			dst.Period = &api.OptionalUInt64{
-				Value: *cc.Period,
-			}
-		}
-	}
-	if cc.Shares != nil {
-		if dst.Shares == nil || override {
-			dst.Shares = &api.OptionalUInt64{
-				Value: *cc.Shares,
-			}
-		}
-	}
-	if cc.Quota != nil {
-		if dst.Quota == nil || override {
-			dst.Quota = &api.OptionalInt64{
-				Value: *cc.Quota,
-			}
-		}
-	}
 }
 
-type MemCgroup struct {
-	// sets hard limit of memory usage
-	Limit *int64 `json:"limit,omitempty"`
+func (cc *cpuCgroup) String() string {
+	buf := util.GetBuf()
+	defer util.PutBuf(buf)
 
+	buf.WriteString("cpu{")
+	if cc.Cpus != "" {
+		buf.WriteString(fmt.Sprintf("cpus:%s, ", cc.Cpus))
+	}
+	if cc.Mems != "" {
+		buf.WriteString(fmt.Sprintf("mems:%v", cc.Mems))
+	}
+	buf.WriteString("}")
+	return buf.String()
+}
+
+func (cc *cpuCgroup) Adjust(aj *api.ContainerAdjustment) bool {
+	if cc.Cpus == "" && cc.Mems == "" {
+		return false
+	}
+	if cc.Cpus != "" {
+		aj.SetLinuxCPUSetCPUs(cc.Cpus)
+	}
+	if cc.Mems != "" {
+		aj.SetLinuxCPUSetMems(cc.Mems)
+	}
+	return true
+}
+
+type memCgroup struct {
 	// sets soft limit of memory usage
 	Reservation *int64 `json:"reservation,omitempty"`
 
@@ -88,49 +68,46 @@ type MemCgroup struct {
 	DisableOomKiller *bool `json:"disableOomKiller,omitempty"`
 }
 
-func (mc *MemCgroup) To() *api.LinuxMemory {
-	linuxm := &api.LinuxMemory{}
-	if mc.Limit != nil {
-		linuxm.Limit = &api.OptionalInt64{
-			Value: *mc.Limit,
-		}
-	}
+func (mc *memCgroup) String() string {
+	buf := util.GetBuf()
+	defer util.PutBuf(buf)
+
+	buf.WriteString("memory{")
 	if mc.Reservation != nil {
-		linuxm.Reservation = &api.OptionalInt64{
-			Value: *mc.Reservation,
-		}
+		buf.WriteString(fmt.Sprintf("reservation:%d, ", mc.Reservation))
 	}
 	if mc.DisableOomKiller != nil {
-		linuxm.DisableOomKiller = &api.OptionalBool{
-			Value: *mc.DisableOomKiller,
-		}
+		buf.WriteString(fmt.Sprintf("disableOomKiller:%v", *mc.DisableOomKiller))
 	}
-	return linuxm
+	buf.WriteString("}")
+	return buf.String()
 }
 
-func (mc *MemCgroup) MergeTo(dst *api.LinuxMemory, override bool) {
+func (mc *memCgroup) Adjust(aj *api.ContainerAdjustment) bool {
+	if mc.DisableOomKiller == nil && mc.Reservation == nil {
+		return false
+	}
+	if mc.DisableOomKiller != nil && *mc.DisableOomKiller {
+		aj.SetLinuxMemoryDisableOomKiller()
+	}
+	if mc.Reservation != nil {
+		aj.SetLinuxMemoryReservation(*mc.Reservation)
+	}
+	return true
+}
+
+func (mc *memCgroup) MergeTo(dst *memCgroup, override bool) {
 	if dst == nil {
 		return
 	}
-	if mc.Limit != nil {
-		if dst.Limit == nil || override {
-			dst.Limit = &api.OptionalInt64{
-				Value: *mc.Limit,
-			}
-		}
-	}
 	if mc.Reservation != nil {
 		if dst.Reservation == nil || override {
-			dst.Reservation = &api.OptionalInt64{
-				Value: *mc.Reservation,
-			}
+			dst.Reservation = mc.Reservation
 		}
 	}
 	if mc.DisableOomKiller != nil {
 		if dst.DisableOomKiller == nil || override {
-			dst.DisableOomKiller = &api.OptionalBool{
-				Value: *mc.DisableOomKiller,
-			}
+			dst.DisableOomKiller = mc.DisableOomKiller
 		}
 	}
 }

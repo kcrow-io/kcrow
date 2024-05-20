@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/containerd/nri/pkg/api"
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -14,13 +13,13 @@ import (
 
 // ref: https://github.com/opencontainers/runtime-spec/blob/main/config-linux.md#control-groups
 const (
-	cgroupSuffix = ".cgroup.kcrow.io"
+	CgroupSuffix = ".cgroup.kcrow.io"
 )
 
 var (
 	cgnames = map[string]reflect.Type{
-		"cpu":    reflect.TypeOf(api.LinuxCPU{}),
-		"memory": reflect.TypeOf(api.LinuxMemory{}),
+		"cpu": reflect.TypeOf(cpuCgroup{}),
+		"mem": reflect.TypeOf(memCgroup{}),
 	}
 )
 
@@ -46,9 +45,9 @@ func (c *cgroup) String() string {
 		return ""
 	}
 	switch v := c.Meta.(type) {
-	case *api.LinuxCPU:
+	case *cpuCgroup:
 		return v.String()
-	case *api.LinuxMemory:
+	case *memCgroup:
 		return v.String()
 	default:
 		return ""
@@ -58,17 +57,20 @@ func (c *cgroup) String() string {
 func cgroupParse(po *corev1.Pod, cntname string) *cgroup {
 	var (
 		prefix, value string
-		ok            bool
+		found         bool
 	)
 	if po == nil || po.Annotations == nil {
 		return nil
 	}
 	for k, v := range po.Annotations {
-		prefix, ok = util.TrimSuffix(k, cgroupSuffix)
-		if ok {
+		prefix, found = util.TrimSuffix(k, CgroupSuffix)
+		if found {
 			value = v
 			break
 		}
+	}
+	if !found {
+		return nil
 	}
 	kind, ok := k8s.TryParseContainer(po, cntname, prefix)
 	if !ok {
@@ -103,51 +105,12 @@ func cgroupMerge(src, dst any, override bool) error {
 		return fmt.Errorf("type is not equal or is null")
 	}
 	switch src.(type) {
-	case *api.LinuxCPU:
-		cpuMerge(src.(*api.LinuxCPU), dst.(*api.LinuxCPU), override)
-	case *api.LinuxMemory:
-		memoryMerge(src.(*api.LinuxMemory), dst.(*api.LinuxMemory), override)
+	case *cpuCgroup:
+		src.(*cpuCgroup).MergeTo(dst.(*cpuCgroup), override)
+	case *memCgroup:
+		src.(*memCgroup).MergeTo(dst.(*memCgroup), override)
 	default:
-		return fmt.Errorf("not support cgroup type %v", srct)
+		return fmt.Errorf("not support cgroup type: %v", srct)
 	}
 	return nil
-}
-
-// only merge cpuset, memset.
-func cpuMerge(src, dst *api.LinuxCPU, override bool) {
-	if src == nil || dst == nil {
-		return
-	}
-	klog.V(2).Infof("cpuMerge src %v, dst %v, over %v", src, dst, override)
-	if src.Cpus != "" {
-		if dst.Cpus == "" || override {
-			dst.Cpus = src.Cpus
-		}
-	}
-	if src.Mems != "" {
-		if dst.Mems == "" || override {
-			dst.Mems = src.Mems
-		}
-	}
-	if src.Quota != nil {
-		if dst.Quota == nil || override {
-			dst.Quota = &api.OptionalInt64{
-				Value: src.Quota.Value,
-			}
-		}
-	}
-}
-
-func memoryMerge(src, dst *api.LinuxMemory, override bool) {
-	if src == nil || dst == nil {
-		return
-	}
-	klog.V(2).Infof("memoryMerge src %v, dst %v, over %v", src, dst, override)
-	if src.Reservation != nil {
-		if dst.Reservation == nil || override {
-			dst.Reservation = &api.OptionalInt64{
-				Value: src.Reservation.Value,
-			}
-		}
-	}
 }

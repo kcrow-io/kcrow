@@ -21,12 +21,15 @@ const (
 type Hub struct {
 	rcs []oci.Oci
 	ctx context.Context
+
+	sockpath string
 }
 
-func New(ctx context.Context, ocis ...oci.Oci) (*Hub, error) {
+func New(ctx context.Context, nripath string, ocis ...oci.Oci) (*Hub, error) {
 
 	hub := &Hub{
-		ctx: ctx,
+		ctx:      ctx,
+		sockpath: nripath,
 	}
 
 	for _, oc := range ocis {
@@ -39,7 +42,7 @@ func New(ctx context.Context, ocis ...oci.Oci) (*Hub, error) {
 func (h *Hub) Start() {
 	go func() {
 		util.TimeBackoff(func() error { //nolint
-			st, err := newStub(h)
+			st, err := newStub(h, h.sockpath)
 			if err != nil {
 				klog.Errorf("init stub failed: %v", err)
 				return err
@@ -51,6 +54,7 @@ func (h *Hub) Start() {
 				return nil
 			default:
 				st.Stop()
+				klog.Errorf("server exist, errmsg: %v", err)
 				return fmt.Errorf("server exist, errmsg: %v", err)
 			}
 		}, 0)
@@ -84,8 +88,9 @@ func (h *Hub) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *api.Co
 	return adjust, nil, err
 }
 
-func newStub(rc any) (stub.Stub, error) {
+func newStub(rc any, nripath string) (stub.Stub, error) {
 	return stub.New(rc,
+		stub.WithSocketPath(nripath),
 		stub.WithPluginIdx(index),
 		stub.WithPluginName(name),
 		stub.WithOnClose(func() {}),

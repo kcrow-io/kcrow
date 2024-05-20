@@ -258,12 +258,10 @@ check_doc:
 	@ echo "all doc is ok "
 
 
-
 # ==========================
 .PHONY: e2e
 e2e: vendor
-	-$(QUIET) echo "$(WHALE) $@"
-	-$(QUIET) cd "${ROOTDIR}/test/e2e" && $(GO_TEST) -test.root -parallel ${TESTFLAGS_PARALLEL} .
+	-$(QUIET) cd "./tests/e2e" && $(GO_TEST) -v ./...
 
 
 .PHONY: clean_e2e
@@ -320,7 +318,7 @@ lint_chart_trivy:
       (($$?==0)) || { echo "error, failed to check chart trivy" && exit 1 ; } ; \
       echo "chart trivy check: pass"
 
-
-.PHONY: build-chart
-build-chart:
-	@ cd charts ; make
+# ==========================
+.PHONY: chart
+chart:
+	@cd charts ; make

@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/containerd/nri/pkg/api"
 	merr "github.com/kcrow-io/kcrow/pkg/errors"
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/oci"
@@ -56,28 +55,19 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	}
 
 	var (
-		cpuc = &api.LinuxCPU{}
-		memc = &api.LinuxMemory{}
+		cpuc = &cpuCgroup{}
+		memc = &memCgroup{}
 		ct   = im.Ct
 	)
 
-	if ct.Linux != nil && ct.Linux.Resources != nil {
-		if ct.Linux.Resources.Cpu != nil {
-			cpuc = ct.Linux.Resources.Cpu
-		}
-		if ct.Linux.Resources.Memory != nil {
-			memc = ct.Linux.Resources.Memory
-		}
-	}
-
 	fn := func(cp *cgroup) {
 		switch cp.Meta.(type) {
-		case *api.LinuxCPU:
+		case *cpuCgroup:
 			err = cgroupMerge(cp.Meta, cpuc, true)
-		case *api.LinuxMemory:
+		case *memCgroup:
 			err = cgroupMerge(cp.Meta, memc, true)
 		default:
-			klog.Warningf("not support cgroup meta %v", reflect.TypeOf(cp.Meta))
+			klog.Warningf("not support cgroup type: %v", reflect.TypeOf(cp.Meta))
 		}
 		if err != nil {
 			klog.Errorf("cgroup merge failed: %v", err)
@@ -105,9 +95,12 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	if cg != nil {
 		fn(cg)
 	}
-
-	ct.Linux.Resources.Cpu = cpuc
-	ct.Linux.Resources.Memory = memc
+	if cpuc.Adjust(im.Adjust) {
+		klog.Infof("update pod '%s/%s', cgoup: %s", po.GetNamespace(), po.GetName(), cpuc)
+	}
+	if memc.Adjust(im.Adjust) {
+		klog.Infof("update pod '%s/%s', cgoup: %s", po.GetNamespace(), po.GetName(), memc)
+	}
 	return nil
 }
 
@@ -121,14 +114,14 @@ func (m *manager) NodeUpdate(ni *k8s.NodeItem) {
 	node := ni.No
 
 	for k, v := range node.Annotations {
-		prefix, ok := util.TrimSuffix(k, cgroupSuffix)
+		prefix, ok := util.TrimSuffix(k, CgroupSuffix)
 		if !ok {
 			continue
 		}
 		cg := cgroupfromStr(prefix, v)
 		if cg != nil {
 			m.node.Put(prefix, cg)
-			klog.V(3).Infof("node %s, update cgroup %s", node.Name, cg)
+			klog.V(3).Infof("node '%s', update cgroup: %s", node.Name, cg)
 		}
 	}
 }
@@ -143,7 +136,7 @@ func (m *manager) NamespaceUpdate(ni *k8s.NsItem) {
 	ns := ni.Ns
 
 	for k, v := range ns.Annotations {
-		prefix, ok := util.TrimSuffix(k, cgroupSuffix)
+		prefix, ok := util.TrimSuffix(k, CgroupSuffix)
 		if !ok {
 			continue
 		}
@@ -157,7 +150,7 @@ func (m *manager) NamespaceUpdate(ni *k8s.NsItem) {
 			}
 			v.Put(prefix, cg)
 			m.mu.Unlock()
-			klog.V(3).Infof("namespace %s, update cgroup %s", ns.Name, cg)
+			klog.V(3).Infof("namespace '%s', update cgroup: %s", ns.Name, cg)
 		}
 	}
 }
