@@ -8,8 +8,10 @@ import (
 )
 
 type PodVol struct {
-	Destination string
+	VolumeMount corev1.VolumeMount
+	Container   *api.Container
 	PvSpec      *corev1.PersistentVolume
+	Destination string
 }
 
 type VolResult struct {

@@ -1,53 +1,69 @@
 package plugins
 
 import (
-	"fmt"
-	"path"
-
 	"github.com/containerd/nri/pkg/api"
 	"github.com/kcrow-io/kcrow/pkg/vmvol"
+	linux "github.com/moby/sys/mountinfo"
+	"k8s.io/klog/v2"
 )
 
 func init() {
-	vmvol.RegistVolHandler("nfs.csi", nfsCsiHandler)
+	vmvol.RegistVolHandler("nfs.common", commonHandler)
 }
 
-func nfsCsiHandler(pvs ...*vmvol.PodVol) []*vmvol.VolResult {
+func commonHandler(pvs ...*vmvol.PodVol) []*vmvol.VolResult {
 	var (
-		ret []*vmvol.VolResult
+		ret      []*vmvol.VolResult
+		nfsFound bool
 	)
+
+	nfsFound = false
+	nfsMountInfo, err := linux.GetMounts(linux.FSTypeFilter("nfs", "nfs4"))
+	if err != nil {
+		klog.V(3).ErrorS(err, "get mountinfo err")
+		return nil
+	}
+
 	for _, podv := range pvs {
-		if podv.PvSpec == nil {
-			continue
-		}
-		if podv.PvSpec.Spec.CSI == nil {
-			continue
-		}
-		server := podv.PvSpec.Spec.CSI.VolumeAttributes["server"]
-		share := podv.PvSpec.Spec.CSI.VolumeAttributes["share"]
-		subdir := podv.PvSpec.Spec.CSI.VolumeAttributes["subdir"]
-		if server == "" || share == "" || subdir == "" {
-			continue
-		}
-		sharedir := path.Join(share, subdir)
-
-		args := []string{"-t", "nfs"}
+		args := []string{"mount", "-t", "nfs"}
 		args = append(args, commonOpt(&podv.PvSpec.Spec)...)
-		args = append(args, fmt.Sprintf("%s:%s", server, sharedir))
-		args = append(args, podv.Destination)
+		for _, m := range podv.Container.Mounts {
+			if m.Destination == podv.VolumeMount.MountPath {
+				if podv.VolumeMount.ReadOnly == true {
+					args = append(args, "-o", "ro")
+				}
 
-		data := &vmvol.VolResult{
-			Destination: podv.Destination,
-			Hooks: &api.Hooks{
-				CreateRuntime: []*api.Hook{
-					{
-						Path: "mount",
-						Args: args,
-					},
-				},
-			},
+				for _, info := range nfsMountInfo {
+					if info.Mountpoint == m.Source {
+						args = append(args, info.Source)
+						nfsFound = true
+						break
+					}
+				}
+
+				if nfsFound {
+					args = append(args, podv.Destination)
+					data := &vmvol.VolResult{
+						Destination: m.Destination,
+						Hooks: &api.Hooks{
+							CreateContainer: []*api.Hook{
+								{
+									Path: "/usr/bin/mkdir",
+									Args: []string{podv.Destination},
+								},
+								{
+									Path: "/usr/bin/mount",
+									Args: args,
+								},
+							},
+						},
+					}
+					ret = append(ret, data)
+					break
+				}
+			}
 		}
-		ret = append(ret, data)
+
 	}
 	return ret
 }

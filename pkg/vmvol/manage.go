@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"strings"
 
 	"github.com/containerd/nri/pkg/api"
 	merr "github.com/kcrow-io/kcrow/pkg/errors"
@@ -78,6 +77,7 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 		if cnt.Name != im.Ct.Name {
 			continue
 		}
+
 		for _, volmnt := range cnt.VolumeMounts {
 			v, ok := vols[volmnt.Name]
 			if !ok {
@@ -86,9 +86,12 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 			// for kata runtime, the destination has prefix
 			// /run/kata-containers/$cid/rootfs
 			podvols = append(podvols, &PodVol{
-				Destination: path.Join(kataPrefixPath(im.Ct), volmnt.MountPath),
+				VolumeMount: volmnt,
+				Container:   im.Ct,
 				PvSpec:      v,
+				Destination: path.Join(kataPrefixPath(im.Ct), volmnt.MountPath),
 			})
+
 		}
 	}
 	if len(podvols) != 0 {
@@ -104,7 +107,7 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 				if res.Device != nil {
 					im.Adjust.AddDevice(res.Device)
 				}
-				im.Adjust.RemoveMount(strings.TrimLeft(res.Destination, kataPrefixPath(im.Ct)))
+				im.Adjust.RemoveMount(res.Destination)
 			}
 		}
 	}
