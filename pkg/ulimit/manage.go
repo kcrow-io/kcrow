@@ -45,7 +45,7 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	if err != nil {
 		return errors.Join(&merr.K8sError{}, err)
 	}
-	klog.V(3).Infof("process '%s' on pod '%s/%s'", m.Name(), po.GetNamespace(), po.GetName())
+	klog.V(4).Infof("process '%s' on pod '%s/%s'", m.Name(), po.GetNamespace(), po.GetName())
 
 	var (
 		rlimitm = map[string]*rlimit{}
@@ -58,8 +58,8 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 			rlimitm[rl.Type] = rl
 			return
 		}
-		//not override
-		rl.Merge(v, false)
+		// override
+		rl.Merge(v, true)
 	}
 	// namespace
 	m.mu.RLock()
@@ -85,8 +85,11 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	}
 
 	for _, v := range rlimitm {
-		klog.Infof("rlimit %s for pod %s/%s", v.String(), po.GetNamespace(), po.GetName())
-		im.Adjust.Rlimits = append(im.Adjust.Rlimits, v.To())
+		apiv := v.To()
+		if apiv != nil {
+			klog.Infof("update pod '%s/%s' rlimit: %s", po.GetNamespace(), po.GetName(), v.String())
+			im.Adjust.AddRlimit(apiv.Type, apiv.Hard, apiv.Soft)
+		}
 	}
 	return nil
 }
@@ -112,6 +115,7 @@ func (m *manager) NodeUpdate(ni *k8s.NodeItem) {
 	}
 }
 
+// only support [kind].[suffix]
 func (m *manager) NamespaceUpdate(ni *k8s.NsItem) {
 	switch ni.Ev {
 	case k8s.AddEvent, k8s.UpdateEvent:

@@ -143,7 +143,7 @@ func initControllerServiceManagers(ctrlctx *ControllerContext) {
 	voli := vmvol.New(ctrlctx.InnerCtx, volm, rmm, pom)
 
 	// registry manager
-	hub, err := pkg.New(ctrlctx.InnerCtx, coci, roci, voli)
+	hub, err := pkg.New(ctrlctx.InnerCtx, ctrlctx.Cfg.NriSockPath, coci, roci, voli)
 
 	if err != nil {
 		panic(err)

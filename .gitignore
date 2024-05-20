@@ -12,6 +12,7 @@
 _obj
 _test
 _build/
+output/
 
 # Architecture specific extensions/prefixes
 *.cgo1.go

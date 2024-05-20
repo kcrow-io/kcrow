@@ -15,6 +15,7 @@ import (
 
 // ref: https://github.com/opencontainers/runtime-spec/blob/main/config.md#posix-process
 
+// NOTICE. Soft must little than Hard.
 type rlimit struct {
 	Type string  `json:"-"`
 	Hard *uint64 `json:"hard,omitempty"`
@@ -65,6 +66,7 @@ func (r *rlimit) Merge(dst *rlimit, override bool) {
 		}
 	}
 }
+
 func (r *rlimit) String() string {
 	if r == nil {
 		return ""
@@ -72,10 +74,10 @@ func (r *rlimit) String() string {
 	buf := util.GetBuf()
 	buf.WriteString(r.Type)
 	if r.Hard != nil {
-		buf.WriteString(fmt.Sprintf(" %d(hard)", *r.Hard))
+		buf.WriteString(fmt.Sprintf("-%d", *r.Hard))
 	}
 	if r.Soft != nil {
-		buf.WriteString(fmt.Sprintf(" %d(soft)", *r.Soft))
+		buf.WriteString(fmt.Sprintf("-%d", *r.Soft))
 	}
 	defer util.PutBuf(buf)
 	return buf.String()
@@ -94,6 +96,8 @@ func (r *rlimit) To() *api.POSIXRlimit {
 	if r.Soft != nil {
 		if r.Hard != nil {
 			if *r.Hard < *r.Soft {
+				klog.Warningf("rlimit type '%s', soft '%d' will override hard '%d'", r.Type, *r.Soft, *r.Hard)
+				r.Hard = r.Soft
 				return nil
 			}
 		} else {
@@ -110,19 +114,23 @@ func (r *rlimit) To() *api.POSIXRlimit {
 
 func rlimitParse(po *corev1.Pod, cntname string) *rlimit {
 	var (
-		ok            bool
 		prefix, value string
+		found         bool
 	)
 	if po == nil || po.Annotations == nil {
 		return nil
 	}
 	for k, v := range po.Annotations {
-		prefix, ok = util.TrimSuffix(k, rlimtSuffix)
-		if ok {
+		prefix, found = util.TrimSuffix(k, rlimtSuffix)
+		if found {
 			value = v
 			break
 		}
 	}
+	if !found {
+		return nil
+	}
+
 	kind, ok := k8s.TryParseContainer(po, cntname, prefix)
 	if !ok {
 		klog.V(2).Infof("skip container '%s' cgroup parse, not match", cntname)

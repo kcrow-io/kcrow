@@ -1,15 +1,15 @@
 package common
 
-import "flag"
+import (
+	"flag"
 
-var (
-	kubeconfig string
+	_ "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
-const (
-	DefaultKubeconfig = "/etc/kubeconfig/config.yaml"
+var (
+	DockerMirror string
 )
 
 func init() {
-	flag.StringVar(&kubeconfig, "kubeconfig", DefaultKubeconfig, "The path of the kubeconfig file")
+	flag.StringVar(&DockerMirror, "mirror", "docker.io", "set docker hub mirror")
 }

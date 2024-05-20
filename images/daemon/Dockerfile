@@ -1,8 +1,8 @@
 # Copyright 2023 Authors of kcrow
 # SPDX-License-Identifier: Apache-2.0
 
-ARG BASE_IMAGE=docker.io/library/busybox:1.36.1
-ARG GOLANG_IMAGE=docker.io/library/golang:1.21.3
+ARG BASE_IMAGE=docker.yylt.gq/library/busybox:1.36
+ARG GOLANG_IMAGE=docker.yylt.gq/library/golang:1.22
 
 #======= build bin ==========
 FROM --platform=${BUILDPLATFORM} ${GOLANG_IMAGE} as builder
