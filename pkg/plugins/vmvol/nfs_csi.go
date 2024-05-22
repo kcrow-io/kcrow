@@ -49,7 +49,7 @@ func commonHandler(pvs ...*vmvol.PodVol) []*vmvol.VolResult {
 							CreateContainer: []*api.Hook{
 								{
 									Path: "/usr/bin/mkdir",
-									Args: []string{podv.Destination},
+									Args: []string{"mkdir", "-p", podv.Destination},
 								},
 								{
 									Path: "/usr/bin/mount",
