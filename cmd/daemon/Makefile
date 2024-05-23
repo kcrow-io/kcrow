@@ -6,9 +6,12 @@ all: $(TARGET)
 
 .PHONY: all $(TARGET)
 
-$(TARGET): ../../Makefile ../../Makefile.defs Makefile
+$(TARGET): vendor ../../Makefile ../../Makefile.defs Makefile 
 	@$(ECHO_GO)
 	$(GO_BUILD) -o $(TARGET)
+
+vendor:
+	$(QUIET) $(GO) mod vendor
 
 clean:
 	@$(ECHO_CLEAN)

@@ -1,0 +1,19 @@
+name: Auto ci on retest comments
+
+on:
+  discussion_comment:
+    types: [created] 
+
+permissions: # added using https://github.com/step-security/secure-workflows
+  contents: read
+
+jobs:
+  retest:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.event.comment.body, '/retest') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-go
+      - run: ./tools/scripts/install-golangci-lint
+      - run: make lint-golang  
+      - run: make binaries
