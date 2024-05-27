@@ -1,11 +1,16 @@
 package plugins
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/containerd/nri/pkg/api"
 	"github.com/kcrow-io/kcrow/pkg/vmvol"
 	linux "github.com/moby/sys/mountinfo"
 	"k8s.io/klog/v2"
 )
+
+const pid = 1
 
 func init() {
 	vmvol.RegistVolHandler("nfs.common", commonHandler)
@@ -18,7 +23,7 @@ func commonHandler(pvs ...*vmvol.PodVol) []*vmvol.VolResult {
 	)
 
 	nfsFound = false
-	nfsMountInfo, err := linux.GetMounts(linux.FSTypeFilter("nfs", "nfs4"))
+	nfsMountInfo, err := GetMount(pid, "nfs", "nfs4")
 	if err != nil {
 		klog.V(3).ErrorS(err, "get mountinfo err")
 		return nil
@@ -66,4 +71,14 @@ func commonHandler(pvs ...*vmvol.PodVol) []*vmvol.VolResult {
 
 	}
 	return ret
+}
+
+func GetMount(pid int64, fstype ...string) ([]*linux.Info, error) {
+	f, err := os.Open(fmt.Sprintf("/proc/%d/mountinfo", pid))
+	if err != nil {
+		klog.V(3).ErrorS(err, "open mountinfo err")
+		return nil, err
+	}
+	defer f.Close()
+	return linux.GetMountsFromReader(f, linux.FSTypeFilter(fstype...))
 }
