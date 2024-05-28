@@ -51,3 +51,11 @@ type VolumeRegister interface {
 	Register
 	VolumeUpdate(*VolumeItem)
 }
+
+type nullHandler struct{}
+
+func (t *nullHandler) OnAdd(obj interface{}, isInInitialList bool) {}
+
+func (t *nullHandler) OnUpdate(oldObj, newObj interface{}) {}
+
+func (t *nullHandler) OnDelete(obj interface{}) {}

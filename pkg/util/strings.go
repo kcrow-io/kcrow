@@ -38,7 +38,7 @@ func IterEnvVar(data []string, fn func(k, v string) bool) {
 func TrimSuffix(s string, suffix string) (string, bool) {
 	var idx int
 	if idx = strings.Index(s, suffix); idx < 0 {
-		idx = len(s)
+		return s, false
 	}
-	return s[:idx], idx >= 0
+	return s[:idx], true
 }
