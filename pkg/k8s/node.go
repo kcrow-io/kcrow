@@ -47,7 +47,7 @@ func (no *NodeManage) probe() error {
 		return err
 	}
 	if nodeName == "" {
-		klog.Warningf("recommand set environment '%s', otherwise node controller not work", nodeNameEnv)
+		klog.Warningf("recommand set environment '%s', otherwise all node will cache", nodeNameEnv)
 	}
 	evHandler := toolscache.FilteringResourceEventHandler{
 		FilterFunc: func(obj interface{}) bool {
@@ -55,11 +55,11 @@ func (no *NodeManage) probe() error {
 			if !ok {
 				return false
 			}
-			if v.Name == nodeName {
-				return true
+			if nodeName != "" && v.Name != nodeName {
+				return false
 			}
 
-			return false
+			return true
 		},
 		Handler: no,
 	}
@@ -104,7 +104,6 @@ func (no *NodeManage) OnDelete(obj interface{}) {
 			No: obj.(*corev1.Node),
 		})
 	}
-
 }
 
 func TransNode(in interface{}) (out interface{}, err error) {

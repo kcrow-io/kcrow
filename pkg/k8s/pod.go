@@ -8,6 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
@@ -22,14 +23,12 @@ func NewPodControl(ctx context.Context, reader cache.Cache) *PodManage {
 	if reader == nil {
 		panic(fmt.Errorf("reader cannot be nil"))
 	}
-
-	if nodeName == "" {
-		klog.Warningf("recommand set environment '%s', otherwise all pod will cache.", nodeNameEnv)
-	}
-
 	nr := &PodManage{
 		ctx:    ctx,
 		reader: reader,
+	}
+	if err := nr.probe(); err != nil {
+		panic(err)
 	}
 	return nr
 }
@@ -41,6 +40,37 @@ func (nr *PodManage) Pod(nsname types.NamespacedName) (*corev1.Pod, error) {
 		return nil, err
 	}
 	return po, nil
+}
+
+func (nr *PodManage) probe() error {
+	var (
+		po = &corev1.Pod{}
+	)
+	informer, err := nr.reader.GetInformer(nr.ctx, po)
+	if err != nil {
+		return err
+	}
+	if nodeName == "" {
+		klog.Warningf("recommand set environment '%s', otherwise all pod will cache", nodeNameEnv)
+	}
+	evHandler := toolscache.FilteringResourceEventHandler{
+		FilterFunc: func(obj interface{}) bool {
+			v, ok := obj.(*corev1.Pod)
+			if !ok {
+				return false
+			}
+
+			if nodeName != "" && v.Spec.NodeName != nodeName {
+				return false
+			}
+
+			return true
+		},
+		Handler: &nullHandler{},
+	}
+
+	_, err = informer.AddEventHandler(evHandler)
+	return err
 }
 
 // try to analyze the bellow situations
@@ -78,10 +108,6 @@ func TryParseContainer(po *corev1.Pod, cntname string, s string) (string, bool) 
 func TransPod(in interface{}) (out interface{}, err error) {
 	v, ok := in.(*corev1.Pod)
 	if ok {
-		if nodeName != "" && nodeName != v.Spec.NodeName {
-			return nil, fmt.Errorf("not local pod")
-		}
-
 		v.ManagedFields = nil
 		v.Status = corev1.PodStatus{}
 		return v, nil
