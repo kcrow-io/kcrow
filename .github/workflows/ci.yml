@@ -4,15 +4,29 @@ on:
   pull_request:
     branches: ['main', 'release/**']
 
+  workflow_call:
+    inputs:
+      ref:
+        description: 'sha, tag, branch'
+        required: true
+        type: string
+        default: main
+
+  workflow_dispatch:
+      ref:
+        description: 'sha, tag, branch'
+        required: true
+        default: main
+
 permissions: # added using https://github.com/step-security/secure-workflows
   contents: read
 
 jobs:
   #
-  # golangci-lint
+  # lint and build
   #
-  linters:
-    name: Linters
+  project:
+    name: Linters and Build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
 
@@ -24,40 +38,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-go
       - run: ./tools/scripts/install-golangci-lint
-      - run: |
-          make lint-golang  
 
-  #
-  # Project checks
-  #
-  project:
-    name: Project Checks
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-
-    strategy:
-      matrix:
-        os: [ubuntu-22.04]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: src/github.com/kcrow-io/kcrow
-          fetch-depth: 100
-
-      - uses: ./src/github.com/kcrow-io/kcrow/.github/actions/install-go
-
-      - name: verify build
+      - name: Lint Test
         run: |
-          make binaries
-        working-directory: src/github.com/kcrow-io/kcrow
+          make lint-golang 
 
-  
+      - name: Build Test
+        run: |
+          make build-bin
+
+  #
+  # integration test
+  #
   integration-linux:
-    name: Linux Integration
+    name: Linux Integration Test
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
-    needs: [ "project" ]
+    needs: [ project ]
 
     strategy:
       matrix:
@@ -65,13 +62,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: yylt/k3s-gha@master
+      - uses: ./.github/actions/install-go
+
+      - name: Setup K3s 
+        uses: yylt/k3s-gha@master
         with:
           k3s_arguments: "--disable=servicelb,traefik,local-storage,metrics-server,runtimes --disable-helm-controller  --disable-cloud-controller --disable-network-policy"
           containerd_toml_path: "./tests/config/containerd-1.x.toml"
 
-      - uses: ./.github/actions/install-go
-      - name: run e2e
+      - name: Integration Test
         env:
           KUBECONFIG: ${{ github.workspace }}/k3s.yaml
         shell: bash

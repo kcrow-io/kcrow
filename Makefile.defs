@@ -11,7 +11,7 @@ INSTALL = install
 
 PREFIX?=/usr
 BINDIR?=$(PREFIX)/bin
-TARGETARCH ?= amd64
+TARGETARCH ?= $(shell go env GOARCH)
 
 DESTDIR_BIN ?= $(ROOT_DIR)/output/$(TARGETARCH)/bin
 DESTDIR_BASH_COMPLETION ?= $(ROOT_DIR)/output/$(TARGETARCH)/bash-completion
@@ -69,6 +69,8 @@ GO_BUILD_TIME = $(shell date "+%Y-%m-%d@%H:%M:%S")
 GO_BUILD_LDFLAGS =
 # go build/test -tags values
 GO_TAGS_FLAGS = osusergo
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
 
 # This is declared here as it is needed to change the covermode depending on if
 # RACE is specified.

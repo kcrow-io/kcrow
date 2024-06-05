@@ -34,7 +34,7 @@ func commonHandler(pvs ...*vmvol.PodVol) []*vmvol.VolResult {
 		args = append(args, commonOpt(&podv.PvSpec.Spec)...)
 		for _, m := range podv.Container.Mounts {
 			if m.Destination == podv.VolumeMount.MountPath {
-				if podv.VolumeMount.ReadOnly == true {
+				if podv.VolumeMount.ReadOnly {
 					args = append(args, "-o", "ro")
 				}
 

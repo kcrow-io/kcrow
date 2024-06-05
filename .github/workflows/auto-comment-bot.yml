@@ -1,0 +1,17 @@
+name: Auto ci on retest comments
+
+on:
+  issue_comment:
+    types: [created] 
+
+permissions:
+  contents: read
+
+jobs:
+  retest:
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/retest') }}
+    uses: ./.github/workflows/auto-repo-ci.yaml
+    with:
+      ref: ${{ github.event.pull_request.base.sha }}
+    secrets: inherit
+

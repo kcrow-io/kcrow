@@ -1,0 +1,15 @@
+name: Auto Clean ImageCI
+
+on:
+  schedule:
+    # once for a week
+    - cron: "0 1 * * 0"
+
+jobs:
+  prune-daemon-ci:
+    if: github.repository == 'kcrow-io/kcrow'
+    uses: ./.github/workflows/call-clean-ghcr.yaml
+    with:
+      image_name: daemon
+      older_than: "2"
+    secrets: inherit
