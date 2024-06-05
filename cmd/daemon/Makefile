@@ -1,17 +1,14 @@
 include ../../Makefile.defs
 
-TARGET := ../../bin/daemon
+TARGET := ../../bin/daemon-$(GOOS)-$(GOARCH)
 
 all: $(TARGET)
 
 .PHONY: all $(TARGET)
 
-$(TARGET): vendor ../../Makefile ../../Makefile.defs Makefile 
+$(TARGET): ../../Makefile ../../Makefile.defs Makefile 
 	@$(ECHO_GO)
 	$(GO_BUILD) -o $(TARGET)
-
-vendor:
-	$(QUIET) $(GO) mod vendor
 
 clean:
 	@$(ECHO_CLEAN)

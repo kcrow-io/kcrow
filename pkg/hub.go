@@ -33,7 +33,7 @@ func New(ctx context.Context, nripath string, ocis ...oci.Oci) (*Hub, error) {
 	}
 
 	for _, oc := range ocis {
-		klog.Infof("add resource controller %v", oc.Name())
+		klog.Infof("registe controller '%v'", oc.Name())
 		hub.rcs = append(hub.rcs, oc)
 	}
 	return hub, nil
@@ -79,9 +79,12 @@ func (h *Hub) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *api.Co
 	for _, rc := range h.rcs {
 		err := rc.Process(ctx, it)
 		if err != nil {
-			klog.Warningf("controller %s failed: %v", rc.Name(), err)
 			if errors.Is(err, &merr.K8sError{}) || errors.Is(err, &merr.InternalError{}) {
-				err = nil
+				klog.Warningf("ignore controller %s error: %v", rc.Name(), err)
+				err = nil // nolint
+			} else {
+				klog.Errorf("controller %s failed: %v", rc.Name(), err)
+				break
 			}
 		}
 	}

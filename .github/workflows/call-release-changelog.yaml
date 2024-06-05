@@ -1,0 +1,55 @@
+name: Call Release Plesase
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+    outputs:
+      artifact:
+        description: "name of changelog artifact"
+        value: changelog_artifact
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+
+jobs:
+  release-please-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: go
+          skip-github-pull-request: true
+      - uses: actions/checkout@v4
+      - name: tag major and patch versions
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git remote add gh-token "https://${{ secrets.GITHUB_TOKEN}}@github.com/${{ github.repository }}.git"
+          git tag -d v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }} || true
+          git push origin :v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }} || true
+          git tag -a v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }} -m "Release v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}"
+          git push origin v${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}
+      - run: cat CHANGELOG.md
+  release-please-pr:
+    runs-on: ubuntu-latest
+    needs:
+      - release-please-release
+    steps:
+      - id: release-pr
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: go
+          fork: true
+          skip-github-release: true
+      - run: cat CHANGELOG.md
+          
