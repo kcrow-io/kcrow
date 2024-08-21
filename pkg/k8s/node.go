@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	toolscache "k8s.io/client-go/tools/cache"
@@ -40,9 +41,9 @@ func NewNodeControl(ctx context.Context, reader cache.Cache) *NodeManage {
 
 func (no *NodeManage) probe() error {
 	var (
-		ns = &corev1.Namespace{}
+		node = &corev1.Node{}
 	)
-	informer, err := no.reader.GetInformer(no.ctx, ns)
+	informer, err := no.reader.GetInformer(no.ctx, node)
 	if err != nil {
 		return err
 	}
@@ -89,10 +90,15 @@ func (no *NodeManage) OnAdd(obj interface{}, isInInitialList bool) {
 }
 
 func (no *NodeManage) OnUpdate(oldObj, newObj interface{}) {
+	oldNode := oldObj.(*corev1.Node)
+	newNode := newObj.(*corev1.Node)
+	if reflect.DeepEqual(oldNode.ObjectMeta.Annotations, newNode.ObjectMeta.Annotations) {
+		return
+	}
 	for _, p := range no.proc {
 		p.NodeUpdate(&NodeItem{
 			Ev: UpdateEvent,
-			No: newObj.(*corev1.Node),
+			No: newNode,
 		})
 	}
 }

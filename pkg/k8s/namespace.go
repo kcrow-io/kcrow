@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"context"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	toolscache "k8s.io/client-go/tools/cache"
@@ -79,10 +80,15 @@ func (nr *NsManage) OnAdd(obj interface{}, isInInitialList bool) {
 }
 
 func (nr *NsManage) OnUpdate(oldObj, newObj interface{}) {
+	oldNs := oldObj.(*corev1.Namespace)
+	newNs := newObj.(*corev1.Namespace)
+	if reflect.DeepEqual(oldNs.ObjectMeta.Annotations, newNs.ObjectMeta.Annotations) {
+		return
+	}
 	for _, p := range nr.proc {
 		p.NamespaceUpdate(&NsItem{
 			Ev: UpdateEvent,
-			Ns: newObj.(*corev1.Namespace),
+			Ns: newNs,
 		})
 	}
 }
