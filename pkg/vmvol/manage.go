@@ -50,7 +50,11 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	if err != nil {
 		return errors.Join(&merr.K8sError{}, err)
 	}
-	// skip not kata runtime
+	// generally, default runtime is runc
+	if po.Spec.RuntimeClassName == nil {
+		return nil
+	}
+	// when runtimeClassName is kata, we need to handle the volume
 	if po.Spec.RuntimeClassName != nil && !m.rcm.IsKata(*po.Spec.RuntimeClassName) {
 		return nil
 	}
