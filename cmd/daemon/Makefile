@@ -6,7 +6,7 @@ all: $(TARGET)
 
 .PHONY: all $(TARGET)
 
-$(TARGET): vendor ../../Makefile ../../Makefile.defs Makefile 
+$(TARGET): vendor ../../Makefile ../../Makefile.defs Makefile
 	@$(ECHO_GO)
 	$(GO_BUILD) -o $(TARGET)
 
@@ -30,6 +30,3 @@ install:
 	$(QUIET)echo "install $(TARGET) to $(DESTDIR_BIN)"
 	$(QUIET)$(INSTALL) -m 0755 -d $(DESTDIR_BIN)
 	$(QUIET)$(INSTALL) -m 0755 $(TARGET) $(DESTDIR_BIN)
-
-
-

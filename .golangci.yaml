@@ -1,8 +1,14 @@
 # Options for analysis running.
 run:
-  # Timeout for analysis, e.g. 30s, 5m.
-  # Default: 1m
   timeout: 5m
-
-  skip-dirs:
-   - vendor
+  allow-parallel-runners: true
+  allow-serial-runners: true
+linters:
+  presets:
+    - bugs
+    - error
+    - unused
+  fast: true
+issues:
+  exclude-dirs:
+    - vendor/
