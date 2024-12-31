@@ -38,7 +38,7 @@ controller:
   hostnetwork: true
 
   ## @param controller.nrisock the nri socket path
-  nriSock: "/run/nri/nri.sock"
+  nriSock: "/var/run/nri/nri.sock"
 
   ## @param controller.kubeconfig the kubeconfig file path, 
   ## Notice, When this is configured, the serviceAccount will be ignored.

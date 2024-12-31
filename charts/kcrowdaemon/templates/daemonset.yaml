@@ -98,7 +98,7 @@ spec:
           name: kubeconfig
           readOnly: true
         {{- end }}
-        - mountPath: /run/nri/nri.sock
+        - mountPath: /var/run/nri/nri.sock
           name: socket
           readOnly: true
       volumes:
