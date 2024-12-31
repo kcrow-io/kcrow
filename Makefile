@@ -4,15 +4,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-include Makefile.defs 
+include Makefile.defs
 
 all: build-bin
 
 .PHONY: all build install
 
-CONTROLLER_BIN_SUBDIRS := cmd/daemon 
+CONTROLLER_BIN_SUBDIRS := cmd/daemon
 
-SUBDIRS := $(CONTROLLER_BIN_SUBDIRS) 
+SUBDIRS := $(CONTROLLER_BIN_SUBDIRS)
 
 build-bin:
 	for i in $(SUBDIRS); do $(MAKE) $(SUBMAKEOPTS) -C $$i all; done
@@ -38,12 +38,27 @@ image:
 		echo "Image $${NAME##*/} build success" ; \
 	done
 
+.PHONY: one-image
+one-image:
+	@for NAME in $(IMAGES); do \
+		buildah bud --platform linux/amd64 \
+				--build-arg GIT_COMMIT_VERSION=$(GIT_COMMIT_VERSION) \
+				--build-arg GIT_COMMIT_TIME=$(GIT_COMMIT_TIME) \
+				--build-arg VERSION=$(GIT_COMMIT_VERSION) \
+				--file $(ROOT_DIR)/Dockerfile \
+				--tag $${NAME}:$(IMAGE_TAG) . ; \
+		echo "Image $${NAME##*/} build success" ; \
+	done
+
+
+#============ lints ====================
 
 .PHONY: lint-golang
-lint-golang:
+lint-golang: golangci-lint
 	@$(ECHO_CHECK) contrib/scripts/check-go-fmt.sh
 	$(QUIET) contrib/scripts/check-go-fmt.sh
 	@$(ECHO_CHECK) vetting all GOFILES...
+	$(QUIET) $(GO_MOD_TIDY) 
 	$(QUIET) $(GO_VET) \
     ./cmd/... \
     ./pkg/... \
@@ -93,7 +108,7 @@ fix-code-spell:
   			fi; \
   			codespell --config .github/codespell-config  --write-changes
 
-
+#============ manifests ====================
 
 .PHONY: manifests
 manifests:
@@ -130,6 +145,14 @@ update-authors: ## Update AUTHORS file for the repository.
 	@echo "" >> AUTHORS
 	@contrib/authorgen/authorgen.sh >> AUTHORS
 
+GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
+GOLANGCI_LINT_VERSION ?= v1.59.1
+.PHONY: golangci-lint
+golangci-lint:
+	@[ -f $(GOLANGCI_LINT) ] || { \
+	set -e ;\
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION) ;\
+	}
 
 .PHONY: licenses-all
 licenses-all: ## Generate file with all the License from dependencies.
