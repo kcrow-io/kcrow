@@ -1,6 +1,7 @@
 module github.com/kcrow-io/kcrow
 
 go 1.21
+toolchain go1.22.5
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
@@ -18,7 +19,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/mod v0.16.0
+	golang.org/x/mod v0.22.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
