@@ -111,4 +111,4 @@ spec:
       - name: socket
         hostPath:
           path: {{ .Values.controller.nriSock }}
-          type: File
+          type: Socket
