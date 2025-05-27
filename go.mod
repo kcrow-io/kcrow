@@ -1,6 +1,7 @@
 module github.com/kcrow-io/kcrow
 
-go 1.21
+go 1.24.0
+
 toolchain go1.24.1
 
 require (
@@ -20,7 +21,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.0
-	k8s.io/apimachinery v0.33.0
+	k8s.io/apimachinery v0.33.1
 	k8s.io/client-go v0.32.1
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.20.1
