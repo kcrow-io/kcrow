@@ -1,6 +1,7 @@
 module github.com/kcrow-io/kcrow
 
-go 1.21
+go 1.24.0
+
 toolchain go1.24.1
 
 require (
@@ -15,8 +16,8 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.35.1
 	github.com/prometheus/procfs v0.15.1
-	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/cobra v1.9.1
+	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.0
