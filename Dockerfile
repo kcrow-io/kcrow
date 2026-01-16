@@ -1,7 +1,9 @@
 # Copyright 2023 Authors of kcrow
 # SPDX-License-Identifier: Apache-2.0
 
-ARG BASE_IMAGE=docker.io/library/busybox:1.36.1
+ARG BASE_IMAGE=docker.m.daocloud.io/library/alpine
+FROM ${BASE_IMAGE} AS builder
+RUN apk add --no-cache xfsprogs-extra xfsprogs
 
 FROM ${BASE_IMAGE}
 
@@ -11,6 +13,8 @@ ARG GIT_COMMIT_TIME
 ENV GIT_COMMIT_TIME=${GIT_COMMIT_TIME}
 ARG VERSION
 ENV VERSION=${VERSION}
+COPY --from=builder /usr/sbin/xfs_quota /usr/sbin/xfs_quota
+RUN apk add --no-cache xfsprogs libedit
 
 COPY bin/*   /usr/bin/
 CMD ["/usr/bin/daemon daemon"]

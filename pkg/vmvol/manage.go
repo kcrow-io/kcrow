@@ -118,6 +118,10 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	return nil
 }
 
+func (m *manager) Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
+	return nil
+}
+
 func kataPrefixPath(cnt *api.Container) string {
 	return fmt.Sprintf("/run/kata-containers/%s/rootfs", cnt.Id)
 }

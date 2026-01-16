@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/containerd/nri/pkg/api"
 	merr "github.com/kcrow-io/kcrow/pkg/errors"
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/oci"
@@ -35,6 +36,10 @@ func RlimitManager(no *k8s.NodeManage, ns *k8s.NsManage, po *k8s.PodManage) oci.
 
 func (m *manager) Name() string {
 	return "ulimit"
+}
+
+func (m *manager) Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
+	return nil
 }
 
 func (m *manager) Process(ctx context.Context, im *oci.Item) error {

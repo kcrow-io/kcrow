@@ -35,6 +35,7 @@ spec:
       {{- end }}
       priorityClassName: {{ default "system-node-critical" .Values.controller.priorityClassName }}
       hostNetwork: true
+      hostPID: true
       {{- if not .Values.controller.kubeconfig }}
       serviceAccountName: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
       {{- end }}
@@ -50,6 +51,8 @@ spec:
       {{- end }}
       containers:
       - name: {{ .Values.controller.name | trunc 63 | trimSuffix "-" }}
+        securityContext:
+          privileged: true
         image: {{ include "kcrow.controller.image" . | quote }}
         imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
         command:
@@ -101,6 +104,11 @@ spec:
         - mountPath: /var/run/nri/nri.sock
           name: socket
           readOnly: true
+        - mountPath: /dev
+          name: host-dev
+        - mountPath: /var/lib/containerd
+          mountPropagation: HostToContainer
+          name: containerd-dir
       volumes:
       {{- if .Values.controller.kubeconfig }}
       - name: kubeconfig
@@ -112,3 +120,11 @@ spec:
         hostPath:
           path: {{ .Values.controller.nriSock }}
           type: Socket
+      - hostPath:
+          path: /var/lib/containerd
+          type: Directory
+        name: containerd-dir
+      - hostPath:
+          path: /dev
+          type: Directory
+        name: host-dev

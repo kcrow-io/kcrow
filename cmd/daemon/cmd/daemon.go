@@ -14,6 +14,7 @@ import (
 	"github.com/grafana/pyroscope-go"
 	"github.com/kcrow-io/kcrow/pkg"
 	"github.com/kcrow-io/kcrow/pkg/cgroup"
+	"github.com/kcrow-io/kcrow/pkg/disk"
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/ulimit"
 	"github.com/kcrow-io/kcrow/pkg/util"
@@ -140,10 +141,11 @@ func initControllerServiceManagers(ctrlctx *ControllerContext) {
 	// init manager
 	coci := cgroup.CgroupManager(noc, nsc, pom)
 	roci := ulimit.RlimitManager(noc, nsc, pom)
+	diskci := disk.DiskManager(nsc, pom)
 	voli := vmvol.New(ctrlctx.InnerCtx, volm, rmm, pom)
 
 	// registry manager
-	hub, err := pkg.New(ctrlctx.InnerCtx, ctrlctx.Cfg.NriSockPath, coci, roci, voli)
+	hub, err := pkg.New(ctrlctx.InnerCtx, ctrlctx.Cfg.NriSockPath, coci, roci, voli, diskci)
 
 	if err != nil {
 		panic(err)

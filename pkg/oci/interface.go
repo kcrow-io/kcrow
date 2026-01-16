@@ -20,8 +20,8 @@ type Item struct {
 
 type Oci interface {
 	Name() string
-
 	Process(context.Context, *Item) error
+	Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error
 }
 
 func GetPodInfo(ct *api.Container) types.NamespacedName {

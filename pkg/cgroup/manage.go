@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/containerd/nri/pkg/api"
 	merr "github.com/kcrow-io/kcrow/pkg/errors"
 	"github.com/kcrow-io/kcrow/pkg/k8s"
 	"github.com/kcrow-io/kcrow/pkg/oci"
@@ -101,6 +102,10 @@ func (m *manager) Process(ctx context.Context, im *oci.Item) error {
 	if memc.Adjust(im.Adjust) {
 		klog.Infof("update pod '%s/%s', cgoup: %s", po.GetNamespace(), po.GetName(), memc)
 	}
+	return nil
+}
+
+func (m *manager) Start(ctx context.Context, pod *api.PodSandbox, container *api.Container) error {
 	return nil
 }
 

@@ -33,8 +33,10 @@ func New(ctx context.Context, nripath string, ocis ...oci.Oci) (*Hub, error) {
 	}
 
 	for _, oc := range ocis {
-		klog.Infof("registe controller '%v'", oc.Name())
-		hub.rcs = append(hub.rcs, oc)
+		if oc != nil {
+			klog.Infof("registe controller '%v'", oc.Name())
+			hub.rcs = append(hub.rcs, oc)
+		}
 	}
 	return hub, nil
 }
@@ -89,6 +91,17 @@ func (h *Hub) CreateContainer(ctx context.Context, p *api.PodSandbox, ct *api.Co
 		}
 	}
 	return adjust, nil, err
+}
+
+func (h *Hub) StartContainer(ctx context.Context, p *api.PodSandbox, ct *api.Container) error {
+	for _, rc := range h.rcs {
+		// 调用每个插件的 Start 方法
+		if err := rc.Start(ctx, p, ct); err != nil {
+			klog.Errorf("controller %s start failed: %v", rc.Name(), err)
+			return err
+		}
+	}
+	return nil
 }
 
 func newStub(rc any, nripath string) (stub.Stub, error) {
